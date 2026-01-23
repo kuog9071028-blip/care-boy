@@ -42,7 +42,6 @@ def load_data():
 @st.cache_data
 def load_hospice_knowledge():
     """載入安寧照護 RAG 資料庫"""
-    # 增加搜尋路徑的強韌性
     paths_to_check = [os.path.join("data", "hospice_rag_database.json"), "hospice_rag_database.json"]
     for path in paths_to_check:
         if os.path.exists(path):
@@ -76,7 +75,6 @@ def retrieve_hospice_info(user_query, knowledge_base):
         if item['topic'] in user_query: score += 5
         if score > 0: relevant_chunks.append((score, item))
     relevant_chunks.sort(key=lambda x: x[0], reverse=True)
-    # 取前 3 筆最相關的
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
@@ -85,8 +83,8 @@ def get_ai_response(prompt_text):
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     try:
         genai.configure(api_key=api_key)
-        # 使用 gemini-1.5-flash 或 gemini-pro 皆可
-        model = genai.GenerativeModel('gemini-pro') 
+        # --- 這裡使用了你測試成功的型號 ---
+        model = genai.GenerativeModel('gemini-flash-latest') 
         return model.generate_content(prompt_text).text
     except Exception as e: return f"⚠️ AI 連線異常：{str(e)}"
 
