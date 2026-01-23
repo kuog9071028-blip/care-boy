@@ -42,6 +42,7 @@ def load_data():
 @st.cache_data
 def load_hospice_knowledge():
     """載入安寧照護 RAG 資料庫"""
+    # 增加搜尋路徑的強韌性
     paths_to_check = [os.path.join("data", "hospice_rag_database.json"), "hospice_rag_database.json"]
     for path in paths_to_check:
         if os.path.exists(path):
@@ -75,6 +76,7 @@ def retrieve_hospice_info(user_query, knowledge_base):
         if item['topic'] in user_query: score += 5
         if score > 0: relevant_chunks.append((score, item))
     relevant_chunks.sort(key=lambda x: x[0], reverse=True)
+    # 取前 3 筆最相關的
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
@@ -83,7 +85,8 @@ def get_ai_response(prompt_text):
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-flash-latest')
+        # 使用 gemini-1.5-flash 或 gemini-pro 皆可
+        model = genai.GenerativeModel('gemini-1.5-flash') 
         return model.generate_content(prompt_text).text
     except Exception as e: return f"⚠️ AI 連線異常：{str(e)}"
 
@@ -98,7 +101,7 @@ def render_sidebar_content():
     st.sidebar.markdown("---")
     
     # --- 支柱 1 & 2：錢與輔具 ---
-    st.sidebar.subheader("🧮 補助額度試算 (V7.5)")
+    st.sidebar.subheader("🧮 補助額度試算 (V8.5)")
     with st.sidebar.expander("點擊展開計算機", expanded=False):
         cms_level = st.slider("CMS 失能等級", 2, 8, 7)
         income_type = st.selectbox("福利身分", ["一般戶", "中低收入戶", "低收入戶"])
@@ -116,8 +119,7 @@ def render_sidebar_content():
         
         st.divider()
         
-        # B. 輔具及居家無障礙 (這就是你說的第2支柱！)
-        # 這是每三年 4 萬元的額度 (CMS 2級以上)
+        # B. 輔具及居家無障礙
         assistive_limit = 40000
         assistive_copay_rate = {"一般戶": 0.3, "中低收入戶": 0.1, "低收入戶": 0.0}[income_type]
         assistive_self_pay = int(assistive_limit * assistive_copay_rate)
@@ -166,7 +168,7 @@ def main():
                 # B. AI 分析
                 disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if chronic_diseases else ""
                 
-                # --- V8.2 防亂碼修正版 Prompt (強制純文字) ---
+                # --- V8.5 修正版 Prompt：加入給付觸發門檻 ---
                 prompt = f"""
                 你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
                 
@@ -176,8 +178,9 @@ def main():
                 
                 【任務目標】：請先在內心進行「四大支柱檢核」，再輸出給家屬的建議。
 
-                【系統參考數據 (Cheat Sheet)】：
-                *請務必依據此表回答金額，精準引用*
+                【系統參考數據 (Cheat Sheet) - 觸發式使用】：
+                **注意：只有當使用者明確詢問「錢、補助、額度、費用、申請」或描述內容明顯涉及「需要經濟資源」時，才引用下列數據。否則請忽略此區塊。**
+                
                 - CMS 2級：每月補助 $10,020
                 - CMS 3級：每月補助 $15,460
                 - CMS 4級：每月補助 $18,580
@@ -190,17 +193,15 @@ def main():
                 - 喘息服務：每年最高額度 $48,510 (依等級不同約 14~42 天)
                 
                 【請先在內心執行以下思考程序】：
-                1. 掃描(Scan)：家屬缺了哪一塊？(給付/輔具/失智/四全)
-                   *若描述中有中風/跌倒，務必強調「黃金復健期」與「輔具」。
-                2. 草稿(Draft)：組合成溫暖的建議。
-                3. 潤飾(Refine)：用像朋友的口吻。
+                1. 掃描(Scan)：家屬現在最痛的點是什麼？是心情？是照顧技巧？還是缺錢？
+                2. 判斷(Judge)：**需要列出補助金額嗎？** - 如果使用者只是在發洩情緒 -> 專注於同理心與喘息服務建議，不要列出冷冰冰的金額。
+                   - 如果使用者問「怎麼辦」、「多少錢」 -> 引用上方的 Cheat Sheet。
+                3. 草稿(Draft)：組合成溫暖的建議。
 
                 【最終輸出要求 (嚴格執行)】：
-                1. **【格式禁令】(重要修正)**：
-                   - **嚴禁**使用數學公式或特殊符號 (如 LaTeX, $, \times)。
-                   - 金額請直接寫中文，例如：「您只需自付約 5,134 元」，不要寫算式。
+                1. **【格式禁令】**：嚴禁使用 LaTeX 或數學公式。金額請直接寫中文 ($5,134)。
                 2. **開頭**：務必先同理家屬情緒。
-                3. **內容**：根據四大支柱給予建議 (引用上方參考數據)。
+                3. **內容**：根據判斷結果，提供適當的建議。
                 4. **結尾行動**：一定要明確引導撥打「1966 長照專線」。
                 5. **【免責聲明】(必要！)**：
                    請在回答的最後面，換行並加上這段警語：
@@ -233,7 +234,7 @@ def main():
                                     st.markdown(f"單價：${svc['price']}")
                         st.caption("*以上服務皆可申請長照補助，請參考左側試算。")
 
-    # --- 模式二：安寧諮詢 ---
+    # --- 模式二：安寧諮詢 (修正：加入警語) ---
     elif app_mode == "🕊️ 幽谷伴行 (安寧諮詢)":
         st.title("🕊️ 幽谷伴行 - 安寧照護顧問")
         st.markdown("### 四全照顧：全人、全家、全程、全隊")
@@ -244,10 +245,18 @@ def main():
         if user_q:
             st.chat_message("user").write(user_q)
             docs = retrieve_hospice_info(user_q, kb)
+            
+            # --- V8.5 安寧 Prompt 修正：加入免責聲明要求 ---
             prompt = f"""
             使用者問：{user_q}。
             參考資料：{docs}。
+            
             請以「安寧種子」的溫暖語氣，強調「善終即是福氣」與「四全照顧」的精神來回答。
+            
+            【必要要求】：
+            1. 回答需溫暖且具備專業同理心。
+            2. **結尾必須加上以下免責聲明**：
+               「⚠️ **照小子小提醒**：以上建議僅供參考，安寧緩和醫療的具體執行，請務必諮詢您的主治醫師或安寧團隊。」
             """
             
             with st.chat_message("assistant"):
