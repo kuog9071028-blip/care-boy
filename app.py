@@ -76,26 +76,34 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫 (V9.1 頂規引擎版 - 指定 2.5 Flash)"""
+    """Gemini API 呼叫 (V9.2 穩定版 - 使用 gemini-flash-latest)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     
     try:
         genai.configure(api_key=api_key)
         
-        # 策略：直接使用您帳號權限中最強的 2.5 Flash 模型
-        target_model = 'gemini-2.5-flash' 
+        # 根據您剛剛的 Log，這幾個是「確定存在」且通常「免費版可用」的模型
+        # 我們依序嘗試，確保一定能連上
+        safe_models = [
+            'gemini-flash-latest',   # 對應最新的 1.5 Flash (通常免費)
+            'gemini-1.5-flash-latest',
+            'gemini-pro',            # 舊版穩定款
+            'gemini-1.0-pro'
+        ]
         
-        try:
-            model = genai.GenerativeModel(target_model)
-            return model.generate_content(prompt_text).text
-        except Exception:
-            # 如果 2.5 失敗，自動降級試試看 2.0 Flash
+        last_error = ""
+        
+        for model_name in safe_models:
             try:
-                model = genai.GenerativeModel('gemini-2.0-flash')
+                model = genai.GenerativeModel(model_name)
                 return model.generate_content(prompt_text).text
             except Exception as e:
-                return f"⚠️ 連線失敗。\n錯誤訊息：{str(e)}\n(請檢查 API Key 權限或網路狀態)"
+                # 如果遇到 429 (額度不足) 或 404 (找不到)，就換下一個
+                last_error = str(e)
+                continue
+        
+        return f"⚠️ 所有模型連線失敗。\n最後錯誤：{last_error}\n(請稍後再試，或檢查 Google API 額度)"
 
     except Exception as e:
         return f"⚠️ 系統嚴重錯誤：{str(e)}"
@@ -111,7 +119,7 @@ def render_sidebar_content():
     st.sidebar.markdown("---")
     
     # --- 支柱 1 & 2：錢與輔具 ---
-    st.sidebar.subheader("🧮 補助額度試算 (V9.1)")
+    st.sidebar.subheader("🧮 補助額度試算 (V9.2)")
     with st.sidebar.expander("點擊展開計算機", expanded=False):
         cms_level = st.slider("CMS 失能等級", 2, 8, 7)
         income_type = st.selectbox("福利身分", ["一般戶", "中低收入戶", "低收入戶"])
@@ -174,7 +182,7 @@ def main():
                 dem_matches = calculate_score(user_input, dementia_db)
                 disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if chronic_diseases else ""
                 
-                # --- V9.1 最終 Prompt ---
+                # --- V9.2 最終 Prompt ---
                 prompt = f"""
                 你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
                 
@@ -214,7 +222,7 @@ def main():
                    「⚠️ **照小子小提醒**：以上分析僅供參考。實際補助額度與資格，仍須經由長期照顧管理中心（照管專員）到府評估後才能確定喔！」
                 """
                 
-                with st.spinner("🤖 照小子正在為您思考... (使用 V9.1 頂規引擎)"):
+                with st.spinner("🤖 照小子正在為您思考..."):
                     ai_reply = get_ai_response(prompt)
                 
                 st.divider()
