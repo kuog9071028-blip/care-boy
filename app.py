@@ -84,7 +84,7 @@ def get_ai_response(prompt_text):
     try:
         genai.configure(api_key=api_key)
         # --- 這裡使用了你測試成功的型號 ---
-        model = genai.GenerativeModel('gemini-flash-latest') 
+        model = genai.GenerativeModel('gemini-1.5-flash')
         return model.generate_content(prompt_text).text
     except Exception as e: return f"⚠️ AI 連線異常：{str(e)}"
 
