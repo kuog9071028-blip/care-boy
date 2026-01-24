@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import re
 import os
-import google.generativeai as genai # <--- 換回舊版穩定引擎
+import google.generativeai as genai
 
 # ==========================================
 # 0. 系統設定
@@ -76,41 +76,27 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫 (V9.0 絕對防禦版 - 舊引擎)"""
+    """Gemini API 呼叫 (V9.1 頂規引擎版 - 指定 2.5 Flash)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     
     try:
         genai.configure(api_key=api_key)
         
-        # 1. 先試試看最標準的 gemini-pro (最不容易出錯)
-        target_model = 'gemini-pro'
+        # 策略：直接使用您帳號權限中最強的 2.5 Flash 模型
+        target_model = 'gemini-2.5-flash' 
+        
         try:
             model = genai.GenerativeModel(target_model)
             return model.generate_content(prompt_text).text
         except Exception:
-            # 2. 如果失敗，試試看 1.5-flash
+            # 如果 2.5 失敗，自動降級試試看 2.0 Flash
             try:
-                target_model = 'gemini-1.5-flash'
-                model = genai.GenerativeModel(target_model)
+                model = genai.GenerativeModel('gemini-2.0-flash')
                 return model.generate_content(prompt_text).text
-            except Exception as e_final:
-                # 3. 如果都失敗，列印出所有可用的模型給你看！
-                available_models = []
-                try:
-                    for m in genai.list_models():
-                        if 'generateContent' in m.supported_generation_methods:
-                            available_models.append(m.name)
-                except:
-                    pass
-                
-                return f"""⚠️ 連線失敗。
-                錯誤訊息：{str(e_final)}
-                
-                🔍 您的 API Key 目前能抓到的模型清單：
-                {available_models if available_models else "無法取得模型清單 (請檢查 API Key 權限)"}
-                """
-                
+            except Exception as e:
+                return f"⚠️ 連線失敗。\n錯誤訊息：{str(e)}\n(請檢查 API Key 權限或網路狀態)"
+
     except Exception as e:
         return f"⚠️ 系統嚴重錯誤：{str(e)}"
 
@@ -125,7 +111,7 @@ def render_sidebar_content():
     st.sidebar.markdown("---")
     
     # --- 支柱 1 & 2：錢與輔具 ---
-    st.sidebar.subheader("🧮 補助額度試算 (V9.0)")
+    st.sidebar.subheader("🧮 補助額度試算 (V9.1)")
     with st.sidebar.expander("點擊展開計算機", expanded=False):
         cms_level = st.slider("CMS 失能等級", 2, 8, 7)
         income_type = st.selectbox("福利身分", ["一般戶", "中低收入戶", "低收入戶"])
@@ -188,7 +174,7 @@ def main():
                 dem_matches = calculate_score(user_input, dementia_db)
                 disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if chronic_diseases else ""
                 
-                # --- V9.0 Prompt ---
+                # --- V9.1 最終 Prompt ---
                 prompt = f"""
                 你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
                 
@@ -228,7 +214,7 @@ def main():
                    「⚠️ **照小子小提醒**：以上分析僅供參考。實際補助額度與資格，仍須經由長期照顧管理中心（照管專員）到府評估後才能確定喔！」
                 """
                 
-                with st.spinner("🤖 照小子正在為您思考..."):
+                with st.spinner("🤖 照小子正在為您思考... (使用 V9.1 頂規引擎)"):
                     ai_reply = get_ai_response(prompt)
                 
                 st.divider()
