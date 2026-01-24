@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import re
 import os
+import time
 import google.generativeai as genai
 
 # ==========================================
@@ -76,34 +77,30 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫 (V9.2 穩定版 - 使用 gemini-flash-latest)"""
+    """Gemini API 呼叫 (V9.3 純免費生存版)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     
     try:
         genai.configure(api_key=api_key)
         
-        # 根據您剛剛的 Log，這幾個是「確定存在」且通常「免費版可用」的模型
-        # 我們依序嘗試，確保一定能連上
-        safe_models = [
-            'gemini-flash-latest',   # 對應最新的 1.5 Flash (通常免費)
-            'gemini-1.5-flash-latest',
-            'gemini-pro',            # 舊版穩定款
-            'gemini-1.0-pro'
-        ]
+        # 關鍵修改：使用您 Log 中出現過的「gemini-flash-latest」
+        # 這是免費版最穩定的代號
+        model = genai.GenerativeModel('gemini-flash-latest')
         
-        last_error = ""
-        
-        for model_name in safe_models:
-            try:
-                model = genai.GenerativeModel(model_name)
-                return model.generate_content(prompt_text).text
-            except Exception as e:
-                # 如果遇到 429 (額度不足) 或 404 (找不到)，就換下一個
-                last_error = str(e)
-                continue
-        
-        return f"⚠️ 所有模型連線失敗。\n最後錯誤：{last_error}\n(請稍後再試，或檢查 Google API 額度)"
+        # 加入重試機制 (Retry Logic)
+        # 如果免費版因為「太頻繁」被擋 (429)，我們就休息 2 秒再試一次
+        try:
+            return model.generate_content(prompt_text).text
+        except Exception as e:
+            if "429" in str(e):
+                time.sleep(2) # 休息一下
+                try:
+                    return model.generate_content(prompt_text).text
+                except:
+                    return "⚠️目前使用人數較多 (Google 免費額度限制)，請過 1 分鐘後再試。"
+            else:
+                return f"⚠️ 連線異常：{str(e)}"
 
     except Exception as e:
         return f"⚠️ 系統嚴重錯誤：{str(e)}"
@@ -119,7 +116,7 @@ def render_sidebar_content():
     st.sidebar.markdown("---")
     
     # --- 支柱 1 & 2：錢與輔具 ---
-    st.sidebar.subheader("🧮 補助額度試算 (V9.2)")
+    st.sidebar.subheader("🧮 補助額度試算 (V9.3)")
     with st.sidebar.expander("點擊展開計算機", expanded=False):
         cms_level = st.slider("CMS 失能等級", 2, 8, 7)
         income_type = st.selectbox("福利身分", ["一般戶", "中低收入戶", "低收入戶"])
@@ -182,7 +179,7 @@ def main():
                 dem_matches = calculate_score(user_input, dementia_db)
                 disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if chronic_diseases else ""
                 
-                # --- V9.2 最終 Prompt ---
+                # --- V9.3 Prompt ---
                 prompt = f"""
                 你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
                 
@@ -222,7 +219,7 @@ def main():
                    「⚠️ **照小子小提醒**：以上分析僅供參考。實際補助額度與資格，仍須經由長期照顧管理中心（照管專員）到府評估後才能確定喔！」
                 """
                 
-                with st.spinner("🤖 照小子正在為您思考..."):
+                with st.spinner("🤖 照小子正在為您思考... (純免費模式)"):
                     ai_reply = get_ai_response(prompt)
                 
                 st.divider()
