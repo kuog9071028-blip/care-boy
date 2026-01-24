@@ -78,18 +78,34 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫"""
+    """Gemini API 呼叫 (自動尋找可用模型版)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
+    
     try:
         genai.configure(api_key=api_key)
-        # --- 這裡使用了你測試成功的型號 ---
-        # model = genai.GenerativeModel('gemini-flash-latest')
-        # model = genai.GenerativeModel('gemini-1.5-flash')
-        model = genai.GenerativeModel('gemini-pro')
         
-        return model.generate_content(prompt_text).text
-    except Exception as e: return f"⚠️ AI 連線異常：{str(e)}"
+        # 策略 A: 直接嘗試目前最穩定的 gemini-1.5-flash
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            return model.generate_content(prompt_text).text
+        except Exception:
+            # 策略 B: 如果失敗，自動掃描帳號下所有可用的模型
+            valid_models = []
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    valid_models.append(m.name)
+            
+            if valid_models:
+                # 自動選第一個可用的 (通常會是 gemini-1.0-pro 或其他)
+                backup_model_name = valid_models[0]
+                model = genai.GenerativeModel(backup_model_name)
+                return model.generate_content(prompt_text).text
+            else:
+                return "⚠️ 錯誤：您的 API Key 權限似乎無法存取任何模型，請重新申請 Key。"
+                
+    except Exception as e: 
+        return f"⚠️ AI 連線異常：{str(e)}\n(請檢查 API Key 是否正確)"
 
 # ==========================================
 # 2. 側邊欄元件 (四大支柱之首：給付+輔具)
