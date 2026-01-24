@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import re
 import os
-import google.generativeai as genai
+from google import genai  # <--- 使用新版引擎
 
 # ==========================================
 # 0. 系統設定
@@ -35,7 +35,8 @@ def load_data():
             with open(os.path.join("data", "services.json"), "r", encoding="utf-8") as f:
                 services_data = json.load(f)
     except Exception as e:
-        st.error(f"資料庫讀取錯誤：{e}")
+        # 僅在後台紀錄錯誤，不影響前台
+        print(f"資料庫讀取錯誤：{e}")
             
     return dementia_data, caregiver_data, services_data
 
@@ -78,37 +79,23 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫 (自動尋找可用模型版)"""
+    """Gemini API 呼叫 (V8.6 新引擎版)"""
+    # 這裡換成了新的 google-genai 語法
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     
     try:
-        genai.configure(api_key=api_key)
-        
-        # 策略 A: 直接嘗試目前最穩定的 gemini-1.5-flash
-        try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            return model.generate_content(prompt_text).text
-        except Exception:
-            # 策略 B: 如果失敗，自動掃描帳號下所有可用的模型
-            valid_models = []
-            for m in genai.list_models():
-                if 'generateContent' in m.supported_generation_methods:
-                    valid_models.append(m.name)
-            
-            if valid_models:
-                # 自動選第一個可用的 (通常會是 gemini-1.0-pro 或其他)
-                backup_model_name = valid_models[0]
-                model = genai.GenerativeModel(backup_model_name)
-                return model.generate_content(prompt_text).text
-            else:
-                return "⚠️ 錯誤：您的 API Key 權限似乎無法存取任何模型，請重新申請 Key。"
-                
-    except Exception as e: 
-        return f"⚠️ AI 連線異常：{str(e)}\n(請檢查 API Key 是否正確)"
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt_text
+        )
+        return response.text
+    except Exception as e:
+        return f"⚠️ AI 連線異常：{str(e)}\n(請確認 API Key 是否正確)"
 
 # ==========================================
-# 2. 側邊欄元件 (四大支柱之首：給付+輔具)
+# 2. 側邊欄元件
 # ==========================================
 def render_sidebar_content():
     st.sidebar.title("🛡️ 桃園照小子")
@@ -118,7 +105,7 @@ def render_sidebar_content():
     st.sidebar.markdown("---")
     
     # --- 支柱 1 & 2：錢與輔具 ---
-    st.sidebar.subheader("🧮 補助額度試算 (V8.5)")
+    st.sidebar.subheader("🧮 補助額度試算 (V8.6)")
     with st.sidebar.expander("點擊展開計算機", expanded=False):
         cms_level = st.slider("CMS 失能等級", 2, 8, 7)
         income_type = st.selectbox("福利身分", ["一般戶", "中低收入戶", "低收入戶"])
@@ -136,7 +123,7 @@ def render_sidebar_content():
         
         st.divider()
         
-        # B. 輔具及居家無障礙
+        # B. 輔具
         assistive_limit = 40000
         assistive_copay_rate = {"一般戶": 0.3, "中低收入戶": 0.1, "低收入戶": 0.0}[income_type]
         assistive_self_pay = int(assistive_limit * assistive_copay_rate)
@@ -178,14 +165,12 @@ def main():
             if not user_input:
                 st.warning("請輸入狀況！")
             else:
-                # A. 規則比對
                 dem_matches = calculate_score(user_input, dementia_db)
-                care_matches = calculate_score(user_input, caregiver_db)
                 
                 # B. AI 分析
                 disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if chronic_diseases else ""
                 
-                # --- V8.5 修正版 Prompt：加入給付觸發門檻 ---
+                # --- V8.6 融合版 Prompt：保留你的 V8.5 聰明判斷 ---
                 prompt = f"""
                 你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
                 
@@ -225,7 +210,7 @@ def main():
                    「⚠️ **照小子小提醒**：以上分析僅供參考。實際補助額度與資格，仍須經由長期照顧管理中心（照管專員）到府評估後才能確定喔！」
                 """
                 
-                with st.spinner("🤖 正在進行四大支柱評估..."):
+                with st.spinner("🤖 照小子正在為您思考..."):
                     ai_reply = get_ai_response(prompt)
                 
                 st.divider()
@@ -236,11 +221,9 @@ def main():
                 if dem_matches:
                     top_match = dem_matches[0]
                     st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
-                    
                     if "recommend_services" in top_match['data']:
                         rec_codes = top_match['data']['recommend_services']
                         valid_svcs = [code for code in rec_codes if code in services_db]
-                        
                         cols = st.columns(2)
                         for idx, code in enumerate(valid_svcs):
                             svc = services_db[code]
@@ -249,9 +232,9 @@ def main():
                                     st.markdown(f"**{svc['name']} ({code})**")
                                     st.caption(svc['desc'])
                                     st.markdown(f"單價：${svc['price']}")
-                        st.caption("*以上服務皆可申請長照補助，請參考左側試算。")
+                        st.caption("*以上服務皆可申請長照補助。")
 
-    # --- 模式二：安寧諮詢 (修正：加入警語) ---
+    # --- 模式二：安寧諮詢 ---
     elif app_mode == "🕊️ 幽谷伴行 (安寧諮詢)":
         st.title("🕊️ 幽谷伴行 - 安寧照護顧問")
         st.markdown("### 四全照顧：全人、全家、全程、全隊")
@@ -263,7 +246,7 @@ def main():
             st.chat_message("user").write(user_q)
             docs = retrieve_hospice_info(user_q, kb)
             
-            # --- V8.5 安寧 Prompt 修正：加入免責聲明要求 ---
+            # --- V8.6 融合版 Prompt：保留你的 V8.5 安寧免責聲明 ---
             prompt = f"""
             使用者問：{user_q}。
             參考資料：{docs}。
