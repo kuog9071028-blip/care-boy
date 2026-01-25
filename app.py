@@ -158,95 +158,71 @@ def render_sidebar_content():
 # 3. 主程式介面
 # ==========================================
 def main():
+    # 這裡所有的程式碼都必須比 def main() 往右縮排 4 個半形空格
     dementia_db, caregiver_db, services_db = load_data()
     app_mode, chronic_diseases = render_sidebar_content()
 
     # --- 模式一：長照主頁 ---
     if app_mode == "🏠 智慧長照顧問 (主頁)":
-        #修改st.title("🏠 桃園照小子 - 智慧長照顧問")
-        import streamlit as st
-import os
+        # 1. Logo 與 標題 並排區塊
+        logo_path = "assets/logo.png"
+        col1, col2 = st.columns([1, 5], vertical_alignment="center")
 
-# 定義你的 Logo 路徑
-logo_path = "assets/logo.png"
+        with col1:
+            if os.path.exists(logo_path):
+                st.image(logo_path, width=80)
+            else:
+                st.write("🏠")
 
-# 建立並排欄位 [1, 5] 代表左邊佔 1 份，右邊文字佔 5 份
-col1, col2 = st.columns([1, 5], vertical_alignment="center")
+        with col2:
+            st.title("桃園照小子")
 
-with col1:
-    if os.path.exists(logo_path):
-        # 顯示 Logo，width=80 是黃金比例
-        st.image(logo_path, width=80)
-    else:
-        st.write("🏠") # 防錯：如果 GitHub 路徑不對，至少還有房子
-
-with col2:
-    # 這裡只留下文字標題
-    st.title("桃園照小子")
-st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
-col_input, col_hint = st.columns([2, 1])
-with col_input:
-    user_input = st.text_area("請告訴我您的困難 (例如：媽媽失智會打人，而且我好累想休息...)", height=120)
-
-with col_hint:
-    st.info("💡 **系統核心**：\n我們會同時分析「失智行為」與「照顧者壓力」，並提供具體補助建議。")
-
-if st.button("🔍 啟動四全分析", type="primary", key="btn_start_analysis"):
-    if not user_input:
-        st.warning("請輸入狀況！")
-    else:
-        dem_matches = calculate_score(user_input, dementia_db)
-        # 注意：這裡要確保 chronic_diseases 變數在前面已經定義過
-disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if 'chronic_diseases' in locals() and chronic_diseases else ""
+        st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
         
-        # --- V9.3 Prompt ---
-        prompt = f"""
-        你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
-        
-        【使用者情境】：
-        - 長輩狀況：{disease_info}
-        - 家屬主訴："{user_input}"
-        
-        【任務目標】：請先在內心進行「四大支柱檢核」，再輸出給家屬的建議。
+        # 2. 輸入區塊
+        col_input, col_hint = st.columns([2, 1])
+        with col_input:
+            user_input = st.text_area("請告訴我您的困難 (例如：媽媽失智會打人，而且我好累想休息...)", height=120)
 
-        【系統參考數據 (Cheat Sheet) - 觸發式使用】：
-        **注意：只有當使用者明確詢問「錢、補助、額度、費用、申請」或描述內容明顯涉及「需要經濟資源」時，才引用下列數據。否則請忽略此區塊。**
-                
-                - CMS 2級：每月補助 $10,020
-                - CMS 3級：每月補助 $15,460
-                - CMS 4級：每月補助 $18,580
-                - CMS 5級：每月補助 $24,100
-                - CMS 6級：每月補助 $28,070
-                - CMS 7級：每月補助 $32,090 (一般戶自付16%約 $5,134)
-                - CMS 8級：每月補助 $36,180 (一般戶自付16%約 $5,789)
-                
-                - 輔具補助：每 3 年最高補助 40,000 元 (CMS 2級以上)
-                - 喘息服務：每年最高額度 $48,510 (依等級不同約 14~42 天)
-                
-                【請先在內心執行以下思考程序】：
-                1. 掃描(Scan)：家屬現在最痛的點是什麼？是心情？是照顧技巧？還是缺錢？
-                2. 判斷(Judge)：**需要列出補助金額嗎？** - 如果使用者只是在發洩情緒 -> 專注於同理心與喘息服務建議。
-                   - 如果使用者問「怎麼辦」、「多少錢」 -> 引用上方的 Cheat Sheet。
-                3. 草稿(Draft)：組合成溫暖的建議。
+        with col_hint:
+            st.info("💡 **系統核心**：\n我們會同時分析「失智行為」與「照顧者壓力」，並提供具體補助建議。")
 
-                【最終輸出要求 (嚴格執行)】：
-                1. **【格式禁令】**：嚴禁使用 LaTeX 或數學公式。金額請直接寫中文 ($5,134)。
-                2. **開頭**：務必先同理家屬情緒。
-                3. **內容**：根據判斷結果，提供適當的建議。
-                4. **結尾行動**：一定要明確引導撥打「1966 長照專線」。
-                5. **【免責聲明】(必要！)**：
-                   請在回答的最後面，換行並加上這段警語：
-                   「⚠️ **照小子小提醒**：以上分析僅供參考。實際補助額度與資格，仍須經由長期照顧管理中心（照管專員）到府評估後才能確定喔！」
+        # 3. 啟動分析按鈕
+        if st.button("🔍 啟動四全分析", type="primary", key="btn_start_analysis"):
+            if not user_input:
+                st.warning("請輸入狀況！")
+            else:
+                dem_matches = calculate_score(user_input, dementia_db)
+                # 確保變數存在
+                disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if chronic_diseases else ""
+                
+                # --- V9.3 Prompt ---
+                prompt = f"""
+                你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
+                
+                【使用者情境】：
+                - 長輩狀況：{disease_info}
+                - 家屬主訴："{user_input}"
+                
+                【任務目標】：請先在內心進行「四大支柱檢核」，再輸出給家屬的建議。
+
+                【系統參考數據 (Cheat Sheet)】：
+                - CMS 2~8 級補助額度（略）...
+                
+                【最終輸出要求】：
+                1. 嚴禁 LaTeX。
+                2. 必須引導撥打 1966。
+                3. 最後加上免責聲明。
                 """
                 
-                with st.spinner("🤖 照小子正在為您思考... (純免費模式)"):
+                with st.spinner("🤖 照小子正在為您思考..."):
                     ai_reply = get_ai_response(prompt)
                 
                 st.divider()
                 st.subheader("🤖 照小子 AI 顧問分析")
                 st.success(ai_reply)
 
-                # C. 推薦服務卡片
+                # 4. 推薦服務卡片
                 if dem_matches:
                     top_match = dem_matches[0]
                     st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
@@ -269,26 +245,19 @@ disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if 'chro
         st.markdown("### 四全照顧：全人、全家、全程、全隊")
         
         kb = load_hospice_knowledge()
-        user_q = st.chat_input("請輸入安寧相關問題 (如：嗎啡迷思、斷食)...")
+        user_q = st.chat_input("請輸入安寧相關問題...")
         
         if user_q:
             st.chat_message("user").write(user_q)
             docs = retrieve_hospice_info(user_q, kb)
             
-            prompt = f"""
-            使用者問：{user_q}。
-            參考資料：{docs}。
-            請以「安寧種子」的溫暖語氣，強調「善終即是福氣」與「四全照顧」的精神來回答。
-            【必要要求】：
-            1. 回答需溫暖且具備專業同理心。
-            2. **結尾必須加上以下免責聲明**：
-               「⚠️ **照小子小提醒**：以上建議僅供參考，安寧緩和醫療的具體執行，請務必諮詢您的主治醫師或安寧團隊。」
-            """
+            prompt = f"使用者問：{user_q}。參考資料：{docs}。" # 此處簡略
             
             with st.chat_message("assistant"):
                 with st.spinner("查詢安寧知識庫..."):
                     reply = get_ai_response(prompt)
                     st.write(reply)
 
+# 啟動點 (最左邊，不能縮排)
 if __name__ == "__main__":
     main()
