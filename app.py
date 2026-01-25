@@ -163,7 +163,26 @@ def main():
 
     # --- 模式一：長照主頁 ---
     if app_mode == "🏠 智慧長照顧問 (主頁)":
-        st.title("🏠 桃園照小子 - 智慧長照顧問")
+        #修改st.title("🏠 桃園照小子 - 智慧長照顧問")
+        import streamlit as st
+import os
+
+# 定義你的 Logo 路徑
+logo_path = "assets/logo.png"
+
+# 建立並排欄位 [1, 5] 代表左邊佔 1 份，右邊文字佔 5 份
+col1, col2 = st.columns([1, 5], vertical_alignment="center")
+
+with col1:
+    if os.path.exists(logo_path):
+        # 顯示 Logo，width=80 是黃金比例
+        st.image(logo_path, width=80)
+    else:
+        st.write("🏠") # 防錯：如果 GitHub 路徑不對，至少還有房子
+
+with col2:
+    # 這裡只留下文字標題
+    st.title("桃園照小子")
         st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
         
         col_input, col_hint = st.columns([2, 1])
