@@ -185,7 +185,7 @@ with col2:
     st.title("桃園照小子")
 st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
         
-        col_input, col_hint = st.columns([2, 1])
+col_input, col_hint = st.columns([2, 1])
         with col_input:
             user_input = st.text_area("請告訴我您的困難 (例如：媽媽失智會打人，而且我好累想休息...)", height=120)
         with col_hint:
