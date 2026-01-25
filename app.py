@@ -186,16 +186,19 @@ with col2:
 st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
 col_input, col_hint = st.columns([2, 1])
 with col_input:
-user_input = st.text_area("請告訴我您的困難 (例如：媽媽失智會打人，而且我好累想休息...)", height=120)
+    user_input = st.text_area("請告訴我您的困難 (例如：媽媽失智會打人，而且我好累想休息...)", height=120)
+
 with col_hint:
-st.info("💡 **系統核心**：\n我們會同時分析「失智行為」與「照顧者壓力」，並提供具體補助建議。")
+    st.info("💡 **系統核心**：\n我們會同時分析「失智行為」與「照顧者壓力」，並提供具體補助建議。")
 
 if st.button("🔍 啟動四全分析", type="primary", key="btn_start_analysis"):
-if not user_input:
-st.warning("請輸入狀況！")
-else:
-    dem_matches = calculate_score(user_input, dementia_db)
-    disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if chronic_diseases else ""
+    if not user_input:
+        st.warning("請輸入狀況！")
+    else:
+        dem_matches = calculate_score(user_input, dementia_db)
+        # 注意：這裡要確保 chronic_diseases 變數在前面已經定義過
+        disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if 'chronic_diseases' in locals() and chronic_diseases else ""
+        
                 
                 # --- V9.3 Prompt ---
                 prompt = f"""
