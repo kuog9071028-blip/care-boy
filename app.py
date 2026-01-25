@@ -175,7 +175,7 @@ def main():
                 st.write("🏠")
 
         with col2:
-            st.title("桃園照小子")
+            st.title("桃園照小子桃園照小子 - 智慧長照顧問")
 
         st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
         
