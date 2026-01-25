@@ -183,7 +183,7 @@ with col1:
 with col2:
     # 這裡只留下文字標題
     st.title("桃園照小子")
-        st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
+st.markdown("### 四大支柱：給付、輔具、失智引導、四全照顧")
         
         col_input, col_hint = st.columns([2, 1])
         with col_input:
