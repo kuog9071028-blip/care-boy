@@ -197,21 +197,20 @@ if st.button("🔍 啟動四全分析", type="primary", key="btn_start_analysis"
     else:
         dem_matches = calculate_score(user_input, dementia_db)
         # 注意：這裡要確保 chronic_diseases 變數在前面已經定義過
-        disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if 'chronic_diseases' in locals() and chronic_diseases else ""
+disease_info = f"長輩病史包含：{', '.join(chronic_diseases)}。" if 'chronic_diseases' in locals() and chronic_diseases else ""
         
-                
-                # --- V9.3 Prompt ---
-                prompt = f"""
-                你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
-                
-                【使用者情境】：
-                - 長輩狀況：{disease_info}
-                - 家屬主訴："{user_input}"
-                
-                【任務目標】：請先在內心進行「四大支柱檢核」，再輸出給家屬的建議。
+        # --- V9.3 Prompt ---
+        prompt = f"""
+        你現在是「桃園照小子」，一位結合社工專業與安寧種子背景的長照顧問。
+        
+        【使用者情境】：
+        - 長輩狀況：{disease_info}
+        - 家屬主訴："{user_input}"
+        
+        【任務目標】：請先在內心進行「四大支柱檢核」，再輸出給家屬的建議。
 
-                【系統參考數據 (Cheat Sheet) - 觸發式使用】：
-                **注意：只有當使用者明確詢問「錢、補助、額度、費用、申請」或描述內容明顯涉及「需要經濟資源」時，才引用下列數據。否則請忽略此區塊。**
+        【系統參考數據 (Cheat Sheet) - 觸發式使用】：
+        **注意：只有當使用者明確詢問「錢、補助、額度、費用、申請」或描述內容明顯涉及「需要經濟資源」時，才引用下列數據。否則請忽略此區塊。**
                 
                 - CMS 2級：每月補助 $10,020
                 - CMS 3級：每月補助 $15,460
