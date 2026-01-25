@@ -166,7 +166,7 @@ def main():
     if app_mode == "🏠 智慧長照顧問 (主頁)":
         # 1. Logo 與 標題 並排區塊
         logo_path = "assets/logo.png"
-        col1, col2 = st.columns([1, 5], vertical_alignment="center")
+        col1, col2 = st.columns([0.5, 5], vertical_alignment="center")
 
         with col1:
             if os.path.exists(logo_path):
