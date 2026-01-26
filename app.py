@@ -206,7 +206,7 @@ def main():
                 你現在是「桃園照小子」，請「務必」根據以下資料庫內容來回答。
 
                 【長照服務資料庫】：
-                {services_text}
+               {json.dumps(services_db, ensure_ascii=False)}  
 
                 【長輩狀況】：{disease_info}
                 【家屬主訴】："{user_input}"
