@@ -77,6 +77,36 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
+
+def send_careplan_email(user_email, user_input, ai_reply):
+    """實作寄信服務：眼鏡理論、動態主旨、尊嚴聲明"""
+    email_user = "careboy.taoyuan@gmail.com"
+    email_password = st.secrets.get("EMAIL_PASSWORD", "")
+    
+    if not email_password:
+        return False, "⚠️ 系統尚未設定郵件授權碼 (EMAIL_PASSWORD)。"
+
+    current_time = time.strftime("%Y/%m/%d %H:%M")
+    subject = f"【桃園照小子的信】關於「{user_input[:15]}...」的建議 —— {current_time}"
+    
+    content = f"您好，這是一封由「桃園照小子」為您準備的專屬建議。\n\n【想法提醒：眼鏡理論】\n在看方案前，請記得：戴眼鏡是為了讓我們看更清楚，沒人會說眼鏡是負擔；同樣地，助行器、洗澡椅等輔具，也是為了讓我們走更遠、活得更自由的科技工具。這不是因為「老」，而是為了「生活品質的擴充」。\n\n【您的諮詢問題】\n問：{user_input}\n\n【照小子的實戰建議】\n{ai_reply}\n\n---\n【專業宣告與隱私保護】\n本分析建議由 AI 生成，您的主訴僅用於提供長照組合建議與優化系統邏輯。桃園照小子致力於保護您的尊嚴，所有內容不包含個人隱私識別，僅作為您與專業醫療人員討論之參考。\n\n桃園地區長照資源：撥打 1966\n署名：桃園照小子 俊葳小弟 敬上"
+
+    try:
+        msg = MIMEText(content, 'plain', 'utf-8')
+        msg['Subject'] = Header(subject, 'utf-8')
+        msg['From'] = f"桃園照小子 <{email_user}>"
+        msg['To'] = user_email
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(email_user, email_password)
+        server.sendmail(email_user, [user_email], msg.as_string())
+        server.quit()
+        return True, "✅ 建議計畫已打包寄送！"
+    except Exception as e:
+        return False, f"❌ 寄送失敗：{str(e)}"
+    
     """Gemini API 呼叫 (V9.3 純免費生存版)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
@@ -249,6 +279,26 @@ def main():
                                     st.caption(svc['desc'])
                                     st.markdown(f"單價：${svc['price']}")
                         st.caption("*以上服務皆可申請長照補助。")
+                        # ==========================================
+                # 4. Email 打包服務 (分析完畢後顯示)
+                # ==========================================
+                st.divider()
+                st.markdown("### ✉️ 打包這份計畫帶回家")
+                st.info("💡 **尊嚴保護聲明**：本分析不含個人隱私識別，僅供參考。")
+                
+                user_email_addr = st.text_input("接收信件的 Email 地址", placeholder="example@mail.com", key="save_email_addr")
+                
+                if st.button("🚀 一鍵打包建議書", key="btn_send_email"):
+                    if not user_email_addr:
+                        st.warning("請輸入 Email 地址！")
+                    else:
+                        with st.spinner("📧 正在打包眼鏡理論與分析建議..."):
+                            success, msg = send_careplan_email(user_email_addr, user_input, ai_reply)
+                            if success:
+                                st.success(msg)
+                                st.balloons()
+                            else:
+                                st.error(msg)
 
     # --- 模式二：安寧諮詢 ---
     elif app_mode == "🕊️ 幽谷伴行 (安寧諮詢)":
