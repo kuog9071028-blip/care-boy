@@ -77,6 +77,29 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
+    """Gemini API 呼叫 (V9.3 純免費生存版)"""
+    api_key = st.secrets.get("GOOGLE_API_KEY", None)
+    if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
+    
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-flash-latest')
+        try:
+            return model.generate_content(prompt_text).text
+        except Exception as e:
+            if "429" in str(e):
+                time.sleep(2)
+                try:
+                    return model.generate_content(prompt_text).text
+                except:
+                    return "⚠️目前使用人數較多，請稍後。"
+            else:
+                return f"⚠️ 連線異常：{str(e)}"
+    except Exception as e:
+        return f"⚠️ 系統嚴重錯誤：{str(e)}"
+
+# --- 上面那個函式結束了，這裡要回到最左邊 ---
+
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
@@ -106,7 +129,6 @@ def send_careplan_email(user_email, user_input, ai_reply):
         return True, "✅ 建議計畫已打包寄送！"
     except Exception as e:
         return False, f"❌ 寄送失敗：{str(e)}"
-    
     """Gemini API 呼叫 (V9.3 純免費生存版)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
