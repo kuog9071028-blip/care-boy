@@ -190,20 +190,25 @@ def main():
         
         user_input = st.text_area("請告訴我您的困難...", height=120)
 
-        if st.button("🔍 啟動四全分析", type="primary"):
+        # 3. 啟動分析按鈕
+        if st.button("🔍 啟動四全分析", type="primary", key="btn_start_analysis"):
             if not user_input:
                 st.warning("請輸入狀況！")
             else:
+                # 確保慢性病史有被讀到
                 disease_info = f"長輩病史：{', '.join(chronic_diseases)}"
                 prompt = f"你現在是桃園照小子，請根據以下主訴提供長照建議：{user_input}。{disease_info}"
                 
                 with st.spinner("🤖 照小子正在為您思考..."):
-                    ai_reply = get_ai_response(prompt)
+                    # 💡 重點：把分析結果存進「筆記本」裡，才不會因為按了打包按鈕就消失
+                    st.session_state.ai_reply = get_ai_response(prompt)
+                    st.session_state.user_q = user_input # 把問題也記下來
                 
-                # 顯示分析結果
-                st.divider()
-                st.subheader("🤖 照小子 AI 顧問分析")
-                st.success(ai_reply)
+                # 4. 顯示分析與打包區塊 (只要筆記本裡有內容，就一直顯示)
+                if "ai_reply" in st.session_state:
+                    st.divider()
+                    st.subheader("🤖 照小子 AI 顧問分析")
+                    st.success(st.session_state.ai_reply)
 
                 # ==========================================
                 # 3.1 每個人都能打包的 Email 區塊
