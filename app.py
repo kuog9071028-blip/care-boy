@@ -204,34 +204,38 @@ def main():
                     st.session_state.ai_reply = get_ai_response(prompt)
                     st.session_state.user_q = user_input # 把問題也記下來
                 
-                # 4. 顯示分析與打包區塊 (只要筆記本裡有內容，就一直顯示)
-                if "ai_reply" in st.session_state:
-                    st.divider()
-                    st.subheader("🤖 照小子 AI 顧問分析")
-                    st.success(st.session_state.ai_reply)
+        # 4. 顯示分析與打包區塊 (只要筆記本裡有內容，就一直顯示)
+        if "ai_reply" in st.session_state:
+            st.divider()
+            st.subheader("🤖 照小子 AI 顧問分析")
+            st.success(st.session_state.ai_reply)
 
-                # ==========================================
-                # 3.1 每個人都能打包的 Email 區塊
-                # ==========================================
-                st.divider()
-                st.markdown("### ✉️ 打包這份計畫帶回家")
-                st.info("💡 **尊嚴保護聲明**：本分析不含個人隱私識別，僅供參考。")
+            # ==========================================
+            # 3.1 每個人都能打包的 Email 區塊
+            # ==========================================
+            st.divider()
+            st.markdown("### ✉️ 打包這份計畫帶回家")
+            st.info("💡 **尊嚴保護聲明**：本分析不含個人隱私識別，僅供參考。")
                 
-                # 這裡就是輸入 Email 的格子
-                user_email_addr = st.text_input("接收信件的 Email 地址", placeholder="example@mail.com", key="save_email_addr")
+            # 這裡就是輸入 Email 的格子
+            user_email_addr = st.text_input("接收信件的 Email 地址", placeholder="example@mail.com", key="save_email_addr")
                 
-                if st.button("🚀 一鍵打包建議書", key="btn_send_email"):
-                    if not user_email_addr:
-                        st.warning("請輸入 Email 地址！")
-                    else:
-                        with st.spinner("📧 正在打包眼鏡理論與分析建議..."):
-                            # 這裡會呼叫我們剛才寫好的第一部分函式
-                            success, msg = send_careplan_email(user_email_addr, user_input, ai_reply)
-                            if success:
-                                st.success(msg)
-                                st.balloons()
-                            else:
-                                st.error(msg)
+            if st.button("🚀 一鍵打包建議書", key="btn_send_email"):
+                if not user_email_addr:
+                    st.warning("請輸入 Email 地址！")
+                else:
+                    with st.spinner("📧 正在打包眼鏡理論與分析建議..."):
+                        # 這裡會呼叫我們剛才寫好的第一部分函式
+                        success, msg = send_careplan_email(
+                            user_email_addr, 
+                            st.session_state.current_user_q, 
+                            st.session_state.ai_reply
+                        )
+                        if success:
+                            st.success(msg)
+                            st.balloons()
+                        else:
+                            st.error(msg)
 
                 # ==========================================
                 # 3.2 推薦服務卡片 (原本的失智比對移到這裡)
