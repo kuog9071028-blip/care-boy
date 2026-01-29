@@ -234,9 +234,27 @@ def main():
                 dem_matches = calculate_score(user_input, dementia_db)
                 if dem_matches:
                     top_match = dem_matches[0]
+                    # 1. 標題要大方
                     st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
-                    # ... 之後接原本的卡片顯示邏輯 ...
-    
+                    
+                    # 2. 加入一段解釋 (這就是解決「太短」的關鍵)
+                    # 假設你的 JSON 裡有 'desc' 或 'reason'
+                    st.info(f"💡 **照小子提醒**：針對長輩的狀況，這項活動能透過不同水溫與觸覺，穩定長輩的情緒，減少感知異常帶來的不安。")
+                    
+                    # 3. 顯示具體可申請的長照服務代碼
+                    if "recommend_services" in top_match['data']:
+                        st.markdown("#### 🛠️ 建議搭配長照服務 (可申請補助)：")
+                        rec_codes = top_match['data']['recommend_services']
+                        valid_svcs = [code for code in rec_codes if code in services_db]
+                        
+                        cols = st.columns(2)
+                        for idx, code in enumerate(valid_svcs):
+                            svc = services_db[code]
+                            with cols[idx % 2]:
+                                with st.container(border=True):
+                                    st.markdown(f"**{svc['name']} ({code})**")
+                                    st.caption(svc['desc'])
+                                    st.markdown(f"單價：${svc['price']}")    
 
     # --- 模式二：安寧諮詢 (接在主頁模式的整個結束之後) ---
     elif app_mode == "🕊️ 幽谷伴行 (安寧諮詢)":
