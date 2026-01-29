@@ -107,7 +107,7 @@ from email.header import Header
 def send_careplan_email(user_email, user_input, ai_reply):
     """實作寄信服務：眼鏡理論、動態主旨、尊嚴聲明"""
     email_user = "careboy.taoyuan@gmail.com"
-    email_password = st.secrets.get("EMAIL_PASSWORD", "")
+    email_password = st.secrets.get("jrfkbjlhfbtfwrkq", "")
     
     if not email_password:
         return False, "⚠️ 系統尚未設定郵件授權碼 (EMAIL_PASSWORD)。"
@@ -129,8 +129,7 @@ def send_careplan_email(user_email, user_input, ai_reply):
         return True, "✅ 建議計畫已打包寄送！"
     except Exception as e:
         return False, f"❌ 寄送失敗：{str(e)}"
-    """Gemini API 呼叫 (V9.3 純免費生存版)"""
-    api_key = st.secrets.get("GOOGLE_API_KEY", None)
+    
     if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     
     try:
@@ -286,7 +285,7 @@ def main():
                 st.success(ai_reply)
 
                 # 4. 推薦服務卡片
-                if dem_matches:
+            if dem_matches:
                     top_match = dem_matches[0]
                     st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
                     if "recommend_services" in top_match['data']:
