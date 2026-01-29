@@ -285,7 +285,7 @@ def main():
                 st.success(ai_reply)
 
                 # 4. 推薦服務卡片
-            if dem_matches:
+                if dem_matches:
                     top_match = dem_matches[0]
                     st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
                     if "recommend_services" in top_match['data']:
