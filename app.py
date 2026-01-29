@@ -77,6 +77,7 @@ def retrieve_hospice_info(user_query, knowledge_base):
     return [item[1] for item in relevant_chunks[:3]]
 
 def get_ai_response(prompt_text):
+    
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
