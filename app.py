@@ -183,6 +183,11 @@ def render_sidebar_content():
 def main():
     dementia_db, caregiver_db, services_db = load_data()
     app_mode, chronic_diseases = render_sidebar_content()
+    # 🎯 加上這一段「初始化筆記本」，避免 AttributeError
+    if "ai_reply" not in st.session_state:
+        st.session_state.ai_reply = None
+    if "current_user_q" not in st.session_state:
+        st.session_state.current_user_q = ""
 
     if app_mode == "🏠 智慧長照顧問 (主頁)":
         st.title("🏠 桃園照小子 - 智慧長照顧問")
