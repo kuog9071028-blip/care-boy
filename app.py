@@ -9,20 +9,25 @@ from datetime import datetime
 
 def get_subject_keypoint(user_input, client):
     """
+    # 第一道防線：如果輸入根本是空的，直接給預設值
+    if not user_input or len(user_input.strip()) == 0:
+        return "最新照顧計畫建議"
     這個 Function 會把使用者的碎碎念，變成 15 字內的精華
     """
     try:
         response = client.chat.completions.create(
             model="gpt-4o", # 或者你用的模型名稱
             messages=[
-                {"role": "system", "content": "你是一個長照專家照小子。請從家屬問題中抓出2個核心痛點，組合成15字內的一句話。例如：牙口與行走不穩的實戰對策"},
+                {"role": "system", "content": "你是一個長照專家照小子。請從家屬問題中抓出2個核心痛點，組合成15字內的一句話。不可空白！"},
                 {"role": "user", "content": user_input}
             ]
         )
-        key_point = response.choices[0].message.content
+        # 第二道防線：確保 AI 真的有給東西
+        res = response.choices[0].message.content.strip()
+        return res if res else "重點摘要建議"
     except:
-        # 如果 AI 壞掉或抓不出來，給個保險的預設值
-        key_point = user_input[:15] 
+        # 第三道防線：萬一 AI 斷線，抓使用者前 15 個字，如果連那都沒有，就給這句
+        return user_input[:15] if user_input else "照顧計畫摘要"
         
     return key_point
 from email.mime.text import MIMEText
@@ -271,7 +276,7 @@ def main():
                     with st.spinner("📧 桃園照小子正在抓核心痛點，準備寄送..."):
                         # 1. 先抓出 15 字內的關鍵痛點
                         try:
-                            key_point = get_subject_keypoint(st.session_state.current_user_q, client)
+                            key_point = get_subject_keypoint(st.session_state.current_user_q or "長照需求", client)
                         except:
                             key_point = st.session_state.current_user_q[:15]
 
