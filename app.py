@@ -153,7 +153,7 @@ def send_careplan_email(user_email, user_input, ai_reply, key_point):
 
 # 新的（去冰顯眼版）：
 # 1. 產生標題（把原本 \n 換成 ｜ 確保不亂跑）
-    key_point = get_subject_keypoint(user_input, client)
+    #key_point = get_subject_keypoint(user_input, client)
     today_md = datetime.now().strftime("%m/%d")
     subject = f"🚨【重要】照小子：{today_md} 照顧計畫摘要 ｜ 關鍵：{key_point} 【寄送】"
 
