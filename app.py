@@ -139,7 +139,7 @@ def get_ai_response(prompt_text):
 
 # --- 這裡開始是「寄信功能」，確保回到最左邊不縮排 ---
 
-def send_careplan_email(user_email, user_input, ai_reply):
+def send_careplan_email(user_email, user_input, ai_reply, client):
     """實作寄信服務：眼鏡理論、動態主旨、尊嚴聲明"""
     email_user = "careboy.taoyuan@gmail.com"
     # 注意：這裡要填 Secrets 的標籤名稱 EMAIL_PASSWORD
@@ -273,7 +273,8 @@ def main():
                         success, msg = send_careplan_email(
                             user_email_addr, 
                             st.session_state.current_user_q, 
-                            st.session_state.ai_reply
+                            st.session_state.ai_reply,
+                            client
                         )
                         if success:
                             st.success(msg)
