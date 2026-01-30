@@ -139,7 +139,7 @@ def get_ai_response(prompt_text):
 
 # --- 這裡開始是「寄信功能」，確保回到最左邊不縮排 ---
 
-def send_careplan_email(user_email, user_input, ai_reply, client):
+def send_careplan_email(user_email, user_input, ai_reply, key_point):
     """實作寄信服務：眼鏡理論、動態主旨、尊嚴聲明"""
     email_user = "careboy.taoyuan@gmail.com"
     # 注意：這裡要填 Secrets 的標籤名稱 EMAIL_PASSWORD
@@ -265,22 +265,30 @@ def main():
             user_email_addr = st.text_input("接收信件的 Email 地址", placeholder="example@mail.com", key="save_email_addr")
                 
             if st.button("🚀 一鍵打包建議書", key="btn_send_email"):
-                if not user_email_addr:
-                    st.warning("請輸入 Email 地址！")
-                else:
-                    with st.spinner("📧 正在打包眼鏡理論與分析建議..."):
-                        # 這裡會呼叫我們剛才寫好的第一部分函式
-                        success, msg = send_careplan_email(
-                            user_email_addr, 
-                            st.session_state.current_user_q, 
-                            st.session_state.ai_reply,
-                            client
-                        )
-                        if success:
-                            st.success(msg)
-                            st.balloons()
-                        else:
-                            st.error(msg)
+            if not user_email_addr:
+                st.warning("請輸入 Email 地址！")
+            else:
+                with st.spinner("📧 桃園照小子正在抓核心痛點，準備寄送..."):
+                    # 1. 先抓出 15 字內的關鍵痛點
+                    try:
+                        key_point = get_subject_keypoint(st.session_state.current_user_q, client)
+                    except:
+                        key_point = st.session_state.current_user_q[:15]
+
+                    # 2. 寄出帶有「🚨」主旨的信件
+                    success, msg = send_careplan_email(
+                        user_email_addr, 
+                        st.session_state.current_user_q, 
+                        st.session_state.ai_reply,
+                        key_point # 這裡傳入剛抓好的重點，而不是 client
+                    )
+                    
+                    if success:
+                        st.success(f"✅ {msg}")
+                        st.balloons() # 成功噴氣球！
+                    else:
+                        st.error(f"❌ 寄送失敗：{msg}")
+                        
 
                 # ==========================================
                 # 3.2 推薦服務卡片 (原本的失智比對移到這裡)
