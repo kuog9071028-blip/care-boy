@@ -226,6 +226,12 @@ def render_sidebar_content():
 # ==========================================
 def main():
     dementia_db, caregiver_db, services_db = load_data()
+    # --- 🚨 診斷區：請加入這三行 ---
+    st.sidebar.divider()
+    st.sidebar.write("### 🔍 系統狀態診斷")
+    st.sidebar.write(f"1. 資料庫路徑存在：{os.path.exists('data/dementia.json')}")
+    st.sidebar.write(f"2. 失智資料筆數：{len(dementia_db)}")
+    # -----------------------------
     app_mode, chronic_diseases = render_sidebar_content()
     # 🎯 加上這一段「初始化筆記本」，避免 AttributeError
     if "ai_reply" not in st.session_state:
