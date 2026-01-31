@@ -253,11 +253,37 @@ def main():
                     st.session_state.ai_reply = get_ai_response(prompt)
                     st.session_state.user_q = user_input # 把問題也記下來
                 
-        # 4. 顯示分析與打包區塊 (只要筆記本裡有內容，就一直顯示)
+    # 4. 顯示分析與打包區塊 (只要筆記本裡有內容，就一直顯示)
         if "ai_reply" in st.session_state:
             st.divider()
             st.subheader("🤖 照小子 AI 顧問分析")
             st.success(st.session_state.ai_reply)
+
+            # ==========================================
+            # 3.2 推薦服務卡片 (移到寄信按鈕外面，讓它直接顯示)
+            # ==========================================
+            # 💡 修改點：使用 session_state 確保比對的是當前問題，且縮排與 Email 區塊平級
+            target_q = st.session_state.get("user_q", user_input)
+            dem_matches = calculate_score(target_q, dementia_db)
+            
+            if dem_matches:
+                top_match = dem_matches[0]
+                st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
+                st.info(f"💡 **照小子提醒**：針對長輩的狀況，這項活動能透過不同水溫與觸覺，穩定長輩的情緒，減少感知異常帶來的不安。")
+                
+                if "recommend_services" in top_match['data']:
+                    st.markdown("#### 🛠️ 建議搭配長照服務 (可申請補助)：")
+                    rec_codes = top_match['data']['recommend_services']
+                    valid_svcs = [code for code in rec_codes if code in services_db]
+                    
+                    cols = st.columns(2)
+                    for idx, code in enumerate(valid_svcs):
+                        svc = services_db[code]
+                        with cols[idx % 2]:
+                            with st.container(border=True):
+                                st.markdown(f"**{svc['name']} ({code})**")
+                                st.caption(svc['desc'])
+                                st.markdown(f"單價：${svc['price']}")
 
             # ==========================================
             # 3.1 每個人都能打包的 Email 區塊
@@ -266,28 +292,24 @@ def main():
             st.markdown("### ✉️ 打包這份計畫帶回家")
             st.info("💡 **尊嚴保護聲明**：本分析不含個人隱私識別，僅供參考。")
                 
-            # 這裡就是輸入 Email 的格子
             user_email_addr = st.text_input("接收信件的 Email 地址", placeholder="example@mail.com", key="save_email_addr")
                 
             if st.button("🚀 一鍵打包建議書", key="btn_send_email"):
                 if not user_email_addr:
                     st.warning("請輸入 Email 地址！")
                 else:
-                    with st.spinner("📧 桃園照小子正在抓核心痛點，準備寄送..."):
-                        # 1. 先抓出 15 字內的關鍵痛點
-                        try:
-                            key_point = get_subject_keypoint(st.session_state.current_user_q or "長照需求", client)
-                        except:
-                            key_point = st.session_state.current_user_q[:15]
-
-                        # 2. 寄出帶有「🚨」主旨的信件
+                    with st.spinner("📧 正在打包眼鏡理論與分析建議..."):
+                        # 💡 修正：確保變數 user_q 與 analyze 區塊存的一致
+                        # 移除未定義的 get_subject_keypoint 避免報錯
+                        current_q = st.session_state.get("user_q", "長照諮詢問題")
+                        
                         success, msg = send_careplan_email(
                             user_email_addr, 
-                            st.session_state.current_user_q, 
-                            st.session_state.ai_reply,
-                            key_point # 這裡傳入剛抓好的重點，而不是 client
+                            current_q, 
+                            st.session_state.ai_reply
                         )
-                    
+                        
+     
                         if success:
                             st.success(f"✅ {msg}")
                             st.balloons() # 成功噴氣球！
