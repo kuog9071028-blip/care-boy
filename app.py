@@ -63,6 +63,7 @@ def load_data():
             with open(os.path.join("data", "services.json"), "r", encoding="utf-8") as f:
                 services_data = json.load(f)
     except Exception as e:
+    st.error(f"資料讀取失敗：{e}") # 讓它直接在畫面上噴出錯誤紅字
         pass
     return dementia_data, caregiver_data, services_data
 
