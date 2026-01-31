@@ -6,7 +6,6 @@ import time
 import google.generativeai as genai
 import smtplib
 from datetime import datetime
-
 from email.mime.text import MIMEText
 from email.header import Header
 
