@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as stx
 import json
 import re
 import os
@@ -7,29 +7,6 @@ import google.generativeai as genai
 import smtplib
 from datetime import datetime
 
-def get_subject_keypoint(user_input, client):
-    """
-    # 第一道防線：如果輸入根本是空的，直接給預設值
-    if not user_input or len(user_input.strip()) == 0:
-        return "最新照顧計畫建議"
-    這個 Function 會把使用者的碎碎念，變成 15 字內的精華
-    """
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o", # 或者你用的模型名稱
-            messages=[
-                {"role": "system", "content": "你是一個長照專家照小子。請從家屬問題中抓出2個核心痛點，組合成15字內的一句話。不可空白！"},
-                {"role": "user", "content": user_input}
-            ]
-        )
-        # 第二道防線：確保 AI 真的有給東西
-        res = response.choices[0].message.content.strip()
-        return res if res else "重點摘要建議"
-    except:
-        # 第三道防線：萬一 AI 斷線，抓使用者前 15 個字，如果連那都沒有，就給這句
-        return user_input[:15] if user_input else "照顧計畫摘要"
-        
-    return key_point
 from email.mime.text import MIMEText
 from email.header import Header
 
@@ -122,30 +99,36 @@ from email.header import Header
 # ... (保留你原本的 load_data, load_hospice_knowledge, calculate_score, retrieve_hospice_info) ...
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫 (V9.3 純免費生存版)"""
+    """Gemini API 呼叫 (產出摘要與建議)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
-    if not api_key: return "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
+    if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
+    
+    # 重新包裝 Prompt，要求 Gemini 給出特定格式
+    final_prompt = f"{prompt_text}\n\n請務必遵守以下回覆格式：\n[標題]15字以內的重點摘要\n[內容]詳細的建議內容"
     
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-flash-latest')
+        response = model.generate_content(final_prompt).text
+        
+        # 解析標題與內容
         try:
-            return model.generate_content(prompt_text).text
-        except Exception as e:
-            if "429" in str(e):
-                time.sleep(2)
-                try:
-                    return model.generate_content(prompt_text).text
-                except:
-                    return "⚠️目前使用人數較多，請稍後。"
-            else:
-                return f"⚠️ 連線異常：{str(e)}"
+            key_point = response.split("[內容]")[0].replace("[標題]", "").strip()
+            full_reply = response.split("[內容]")[1].strip()
+            return key_point, full_reply
+        except:
+            return "長照計畫建議", response
     except Exception as e:
-        return f"⚠️ 系統嚴重錯誤：{str(e)}"
+        return "系統異常", f"⚠️ 系統錯誤：{str(e)}"
 
 # --- 這裡開始是「寄信功能」，確保回到最左邊不縮排 ---
 
-def send_careplan_email(user_email, user_input, ai_reply, key_point):
+def send_careplan_email(
+    user_email, 
+    user_input, 
+    ai_reply, 
+    key_point# 這裡有傳入第4個參數，正確！
+):
     """實作寄信服務：眼鏡理論、動態主旨、尊嚴聲明"""
     email_user = "careboy.taoyuan@gmail.com"
     # 注意：這裡要填 Secrets 的標籤名稱 EMAIL_PASSWORD
@@ -159,7 +142,6 @@ def send_careplan_email(user_email, user_input, ai_reply, key_point):
 
 # 新的（去冰顯眼版）：
 # 1. 產生標題（把原本 \n 換成 ｜ 確保不亂跑）
-    #key_point = get_subject_keypoint(user_input, client)
     today_md = datetime.now().strftime("%m/%d")
     subject = f"🚨【重要】照小子：{today_md} 照顧計畫摘要 ｜ 關鍵：{key_point} 【寄送】"
 
@@ -227,18 +209,12 @@ def render_sidebar_content():
 # ==========================================
 def main():
     dementia_db, caregiver_db, services_db = load_data()
-    # --- 🚨 診斷區：請加入這三行 ---
-    st.sidebar.divider()
-    st.sidebar.write("### 🔍 系統狀態診斷")
-    st.sidebar.write(f"1. 資料庫路徑存在：{os.path.exists('data/dementia.json')}")
-    st.sidebar.write(f"2. 失智資料筆數：{len(dementia_db)}")
-    # -----------------------------
     app_mode, chronic_diseases = render_sidebar_content()
-    # 🎯 加上這一段「初始化筆記本」，避免 AttributeError
-    if "ai_reply" not in st.session_state:
-        st.session_state.ai_reply = None
-    if "current_user_q" not in st.session_state:
-        st.session_state.current_user_q = ""
+
+    # 初始化筆記本
+    if "ai_reply" not in st.session_state: st.session_state.ai_reply = None
+    if "key_point" not in st.session_state: st.session_state.key_point = ""
+    if "user_q" not in st.session_state: st.session_state.user_q = ""
 
     if app_mode == "🏠 智慧長照顧問 (主頁)":
         st.title("🏠 桃園照小子 - 智慧長照顧問")
@@ -246,43 +222,37 @@ def main():
         
         user_input = st.text_area("請告訴我您的困難...", height=120)
 
-        # 3. 啟動分析按鈕
-        if st.button("🔍 啟動四全分析", type="primary", key="btn_start_analysis"):
+        # 1. 啟動分析按鈕 (只負責計算)
+        if st.button("🔍 啟動四全分析", type="primary"):
             if not user_input:
                 st.warning("請輸入狀況！")
             else:
-                # 確保慢性病史有被讀到
                 disease_info = f"長輩病史：{', '.join(chronic_diseases)}"
                 prompt = f"你現在是桃園照小子，請根據以下主訴提供長照建議：{user_input}。{disease_info}"
-                
-                with st.spinner("🤖 照小子正在為您思考..."):
-                    # 💡 重點：把分析結果存進「筆記本」裡，才不會因為按了打包按鈕就消失
-                    st.session_state.ai_reply = get_ai_response(prompt)
-                    st.session_state.user_q = user_input # 把問題也記下來
-                
-    # 4. 顯示分析與打包區塊 (只要筆記本裡有內容，就一直顯示)
-        if "ai_reply" in st.session_state:
+                with st.spinner("🤖 照小子正在為您思考並抓取核心痛點..."):
+                    kp, reply = get_ai_response(prompt)
+                    st.session_state.key_point = kp
+                    st.session_state.ai_reply = reply
+                    st.session_state.user_q = user_input
+
+        # 2. 顯示區 (只要筆記本有東西就顯示)
+        if st.session_state.ai_reply:
+            # --- (A) AI 溫馨回覆 ---
             st.divider()
             st.subheader("🤖 照小子 AI 顧問分析")
             st.success(st.session_state.ai_reply)
 
-            # ==========================================
-            # 3.2 推薦服務卡片 (移到寄信按鈕外面，讓它直接顯示)
-            # ==========================================
-            # 💡 修改點：使用 session_state 確保比對的是當前問題，且縮排與 Email 區塊平級
-            target_q = st.session_state.get("user_q", user_input)
-            dem_matches = calculate_score(target_q, dementia_db)
-            
+            # --- (B) 📋 建議處方卡片 (緊跟在回覆後) ---
+            st.divider()
+            dem_matches = calculate_score(st.session_state.user_q, dementia_db)
             if dem_matches:
                 top_match = dem_matches[0]
                 st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
-                st.info(f"💡 **照小子提醒**：針對長輩的狀況，這項活動能透過不同水溫與觸覺，穩定長輩的情緒，減少感知異常帶來的不安。")
+                st.info(f"💡 **照小子提醒**：針對長輩的狀況，建議採取穩定情緒的照顧策略。")
                 
                 if "recommend_services" in top_match['data']:
                     st.markdown("#### 🛠️ 建議搭配長照服務 (可申請補助)：")
-                    rec_codes = top_match['data']['recommend_services']
-                    valid_svcs = [code for code in rec_codes if code in services_db]
-                    
+                    valid_svcs = [c for c in top_match['data']['recommend_services'] if c in services_db]
                     cols = st.columns(2)
                     for idx, code in enumerate(valid_svcs):
                         svc = services_db[code]
@@ -291,72 +261,40 @@ def main():
                                 st.markdown(f"**{svc['name']} ({code})**")
                                 st.caption(svc['desc'])
                                 st.markdown(f"單價：${svc['price']}")
+            else:
+                st.caption("ℹ️ 目前狀況未觸發特定失智照顧處方，建議諮詢專業醫護。")
 
-            # ==========================================
-            # 3.1 每個人都能打包的 Email 區塊
-            # ==========================================
+            # --- (C) ✉️ 打包建議書區塊 (最後的行動呼籲) ---
             st.divider()
             st.markdown("### ✉️ 打包這份計畫帶回家")
-            st.info("💡 **尊嚴保護聲明**：本分析不含個人隱私識別，僅供參考。")
-                
-            user_email_addr = st.text_input("接收信件的 Email 地址", placeholder="example@mail.com", key="save_email_addr")
+            st.info(f"🎯 **本郵件摘要**：{st.session_state.key_point}") # 讓使用者看到摘要
+            user_email_addr = st.text_input("接收信件的 Email 地址", key="save_email_addr")
                 
             if st.button("🚀 一鍵打包建議書", key="btn_send_email"):
                 if not user_email_addr:
                     st.warning("請輸入 Email 地址！")
                 else:
-                    with st.spinner("📧 正在打包眼鏡理論與分析建議..."):
-                        # 💡 修正：確保變數 user_q 與 analyze 區塊存的一致
-                        # 移除未定義的 get_subject_keypoint 避免報錯
-                        current_q = st.session_state.get("user_q", "長照諮詢問題")
-                        
+                    with st.spinner("📧 正在寄送建議書..."):
                         success, msg = send_careplan_email(
                             user_email_addr, 
-                            current_q, 
-                            st.session_state.ai_reply
+                            st.session_state.user_q, 
+                            st.session_state.ai_reply,
+                            st.session_state.key_point
                         )
-                        
-     
                         if success:
-                            st.success(f"✅ {msg}")
-                            st.balloons() # 成功噴氣球！
+                            st.success(msg)
+                            st.balloons()
                         else:
-                            st.error(f"❌ 寄送失敗：{msg}")
-                        
+                            st.error(msg)
 
-                # ==========================================
-                # 3.2 推薦服務卡片 (原本的失智比對移到這裡)
-                # ==========================================
-                dem_matches = calculate_score(user_input, dementia_db)
-                if dem_matches:
-                    top_match = dem_matches[0]
-                    # 1. 標題要大方
-                    st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
-                    
-                    # 2. 加入一段解釋 (這就是解決「太短」的關鍵)
-                    # 假設你的 JSON 裡有 'desc' 或 'reason'
-                    st.info(f"💡 **照小子提醒**：針對長輩的狀況，這項活動能透過不同水溫與觸覺，穩定長輩的情緒，減少感知異常帶來的不安。")
-                    
-                    # 3. 顯示具體可申請的長照服務代碼
-                    if "recommend_services" in top_match['data']:
-                        st.markdown("#### 🛠️ 建議搭配長照服務 (可申請補助)：")
-                        rec_codes = top_match['data']['recommend_services']
-                        valid_svcs = [code for code in rec_codes if code in services_db]
-                        
-                        cols = st.columns(2)
-                        for idx, code in enumerate(valid_svcs):
-                            svc = services_db[code]
-                            with cols[idx % 2]:
-                                with st.container(border=True):
-                                    st.markdown(f"**{svc['name']} ({code})**")
-                                    st.caption(svc['desc'])
-                                    st.markdown(f"單價：${svc['price']}")    
+    
 
     # --- 模式二：安寧諮詢 (接在主頁模式的整個結束之後) ---
+    
     elif app_mode == "🕊️ 幽谷伴行 (安寧諮詢)":
         st.title("🕊️ 幽谷伴行 - 安寧照護顧問")
         st.markdown("### 四全照顧：全人、全家、全程、全隊")
-        st.info("💡**研發團隊的話**：安寧不是放棄治療，而是選擇更有尊嚴的陪伴。")
+        st.info("💡**設計者的心裡話**：安寧不是放棄治療，而是選擇更有尊嚴的陪伴。")
         
         kb = load_hospice_knowledge()
         user_q = st.chat_input("請輸入安寧相關問題 (例如：如何跟長輩談預立醫療？)")
@@ -370,9 +308,10 @@ def main():
             
             with st.chat_message("assistant"):
                 with st.spinner("查詢安寧知識庫..."):
-                    reply = get_ai_response(h_prompt)
-                    st.write(reply)
-
+                    # 💡 重點修改：用兩個變數去接回傳值
+                    kp_h, reply_h = get_ai_response(h_prompt) 
+                    # 💡 只顯示內容部分的 reply_h
+                    st.write(reply_h)
 # ==========================================
 # 4. 啟動點 (最左邊，完全不縮排)
 # ==========================================
