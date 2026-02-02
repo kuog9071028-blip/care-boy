@@ -289,7 +289,78 @@ def main():
     
 
     # --- 模式二：安寧諮詢 (接在主頁模式的整個結束之後) ---
+elif app_mode == "🕊️ 幽谷伴行 (安寧諮詢)":
+        st.title("🕊️ 幽谷伴行 - 安寧照護顧問")
+        st.markdown("### 四全照顧：全人、全家、全程、全隊")
+        st.info("💡 **設計者的心裡話**：安寧不是放棄治療，而是選擇更有尊嚴的陪伴。")
+        st.caption("※ 系統會自動記錄您最近的 3 則諮詢，您可以隨時一鍵打包寄回家。")
+        
+        kb = load_hospice_knowledge()
+        
+        # 1. 初始化「三格錦囊資料夾」
+        if "h_reports" not in st.session_state:
+            st.session_state.h_reports = []
 
+        # 2. 對話輸入框
+        user_q = st.chat_input("請輸入安寧相關問題 (例如：如何跟長輩談預立醫療？)")
+        
+        if user_q:
+            docs = retrieve_hospice_info(user_q, kb)
+            h_prompt = f"你現在是安寧顧問，請根據資料回答：{user_q}。參考資料：{docs}"
+            
+            with st.spinner("🤖 照小子正在為您整理安寧錦囊..."):
+                kp_h, reply_h = get_ai_response(h_prompt)
+                
+                # 將新對話存成小包
+                new_report = {
+                    "question": user_q,
+                    "answer": reply_h,
+                    "key_point": kp_h
+                }
+                
+                # 限制最多三封的邏輯
+                st.session_state.h_reports.append(new_report)
+                if len(st.session_state.h_reports) > 3:
+                    st.session_state.h_reports.pop(0)
+
+        # 3. 畫面顯示 (把現有的錦囊都列出來)
+        for idx, report in enumerate(st.session_state.h_reports):
+            # 計算總數，讓標籤顯示為 (1/2, 2/2) 這種格式
+            total = len(st.session_state.h_reports)
+            with st.expander(f"📋 安寧錦囊 ({idx+1}/{total})：{report['key_point']}", expanded=True):
+                st.markdown(f"**問**：{report['question']}")
+                st.info(report['answer'])
+
+        # 4. 一鍵打包區 (只要有一封以上就能打包)
+        if st.session_state.h_reports:
+            st.divider()
+            st.markdown("### ✉️ 一鍵打包寄送安寧錦囊")
+            num_reports = len(st.session_state.h_reports)
+            st.write(f"目前已就緒報告：{num_reports} 封")
+            
+            h_email_addr = st.text_input("接收信件的 Email 地址", key="h_email_batch")
+            
+            if st.button("🚀 啟動打包寄送", key="h_send_batch_btn"):
+                if not h_email_addr:
+                    st.warning("請輸入 Email 地址！")
+                else:
+                    with st.spinner(f"📧 正在寄送 {num_reports} 封錦囊..."):
+                        success_count = 0
+                        for i, r in enumerate(st.session_state.h_reports):
+                            # 加工主旨，加入「安寧錦囊」字樣
+                            h_kp = f"安寧錦囊({i+1}/{num_reports}) ｜ {r['key_point']}"
+                            
+                            success, msg = send_careplan_email(
+                                h_email_addr, 
+                                r['question'], 
+                                r['answer'], 
+                                h_kp
+                            )
+                            if success: success_count += 1
+                        
+                        if success_count > 0:
+                            st.success(f"✅ 成功寄出 {success_count} 封安寧錦囊！請檢查信箱。")
+                            st.balloons()
                             
 # ==========================================
 # 4. 啟動點 (最左邊，完全不縮排)
