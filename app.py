@@ -289,65 +289,7 @@ def main():
     
 
     # --- 模式二：安寧諮詢 (接在主頁模式的整個結束之後) ---
-    elif app_mode == "🕊️ 幽谷伴行 (安寧諮詢)":
-        st.title("🕊️ 幽谷伴行 - 安寧照護顧問")
-        st.markdown("### 四全照顧：全人、全家、全程、全隊")
-        st.info("💡**設計者的心裡話**：安寧不是放棄治療，而是選擇更有尊嚴的陪伴。")
-        
-        kb = load_hospice_knowledge()
-        
-        # 1. 建立安寧專用的暫存區 (避免點擊按鈕後內容不見)
-        if "h_reply" not in st.session_state: st.session_state.h_reply = None
-        if "h_kp" not in st.session_state: st.session_state.h_kp = ""
-        if "h_user_q" not in st.session_state: st.session_state.h_user_q = ""
 
-        # 2. 對話輸入框
-        user_q = st.chat_input("請輸入安寧相關問題 (例如：如何跟長輩談預立醫療？)")
-        
-        if user_q:
-            # 存入暫存區
-            st.session_state.h_user_q = user_q 
-            docs = retrieve_hospice_info(user_q, kb)
-            h_prompt = f"你現在是安寧顧問，請根據資料庫內容回答使用者：{user_q}。參考資料：{docs}"
-            
-            with st.spinner("🤖 照小子正在翻閱安寧知識庫..."):
-                # 取得 AI 回應並存入暫存
-                kp_h, reply_h = get_ai_response(h_prompt)
-                st.session_state.h_kp = kp_h
-                st.session_state.h_reply = reply_h
-
-        # 3. 顯示結果與寄信功能 (只要暫存區有東西就顯示)
-        if st.session_state.h_reply:
-            with st.chat_message("user"):
-                st.write(st.session_state.h_user_q)
-            
-            with st.chat_message("assistant"):
-                st.write(st.session_state.h_reply)
-            
-            # --- ✉️ 安寧專屬打包區 ---
-            st.divider()
-            st.markdown("### ✉️ 打包這份安寧建議")
-            st.caption(f"🎯 **本諮詢摘要**：{st.session_state.h_kp}")
-            
-            h_email_addr = st.text_input("接收信件的 Email 地址", key="h_email_input")
-            
-            if st.button("🚀 一鍵打包寄送", key="h_send_btn"):
-                if not h_email_addr:
-                    st.warning("請輸入 Email 地址！")
-                else:
-                    with st.spinner("📧 正在寄送建議書..."):
-                        # 直接複用你主程式寫好的寄信函式
-                        success, msg = send_careplan_email(
-                            h_email_addr, 
-                            st.session_state.h_user_q, 
-                            st.session_state.h_reply,
-                            st.session_state.h_kp
-                        )
-                        if success:
-                            st.success(msg)
-                            st.balloons()
-                        else:
-                            st.error(msg)
                             
 # ==========================================
 # 4. 啟動點 (最左邊，完全不縮排)
