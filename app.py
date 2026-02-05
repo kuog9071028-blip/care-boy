@@ -243,25 +243,25 @@ def main():
 
         # 2. 顯示區 (只要筆記本有東西就顯示)
         if st.session_state.ai_reply:
-        st.divider()
-        st.subheader("🤖 照小子 AI 顧問分析")
+            st.divider()
+            st.subheader("🤖 照小子 AI 顧問分析")
     
-    # 物理隔離邏輯：從 [完整內文] 處切開
-        if "[完整內文]" in st.session_state.ai_reply:
-        parts = st.session_state.ai_reply.split("[完整內文]")
-        summary_part = parts[0].replace("[摘要]", "").strip()
-        full_detail_part = parts[1].strip()
+            # 物理隔離邏輯：從 [完整內文] 處切開
+            if "[完整內文]" in st.session_state.ai_reply:
+                parts = st.session_state.ai_reply.split("[完整內文]")
+                summary_part = parts[0].replace("[摘要]", "").strip()
+                full_detail_part = parts[1].strip()
         
-        # 1. 顯示摘要（戰友溫馨版）
-        st.info(summary_part)
+                # 1. 顯示摘要（戰友溫馨版）
+                st.info(summary_part)
         
-        # 2. 顯示按鈕（摺疊完整內文）
-        with st.expander("🔍 點擊展開：照小子為您準備的詳細戰術包", expanded=False):
-            st.markdown(full_detail_part)
-    else:
-        # 如果格式意外沒對上，就維持原樣顯示
-        st.success(st.session_state.ai_reply)
-
+                # 2. 顯示按鈕（摺疊完整內文）
+                with st.expander("🔍 點擊展開：照小子為您準備的詳細戰術包", expanded=False):
+                    st.markdown(full_detail_part)
+            else:
+                # 如果格式意外沒對上，就維持原樣顯示
+                st.success(st.session_state.ai_reply)
+    
             # --- (B) 📋 建議處方卡片 (緊跟在回覆後) ---
             st.divider()
             dem_matches = calculate_score(st.session_state.user_q, dementia_db)
