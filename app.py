@@ -255,7 +255,8 @@ def main():
         
                 # 2. 顯示按鈕（摺疊完整內文）
                 with st.expander("🔍 點擊展開：照小子為您準備的詳細戰術包", expanded=False):
-                    st.markdown(full_detail_part)
+                    #st.markdown(full_detail_part)
+                    st.success(full_detail_part) # 這樣點開後，裡面整片都會是綠色底、深綠字
             else:
                 # 如果格式意外沒對上，就維持原樣顯示
                 st.success(st.session_state.ai_reply)
