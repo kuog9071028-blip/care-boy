@@ -243,11 +243,11 @@ def main():
 
         # 2. 顯示區 (只要筆記本有東西就顯示)
         if st.session_state.ai_reply:
-    st.divider()
-    st.subheader("🤖 照小子 AI 顧問分析")
+        st.divider()
+        st.subheader("🤖 照小子 AI 顧問分析")
     
     # 物理隔離邏輯：從 [完整內文] 處切開
-    if "[完整內文]" in st.session_state.ai_reply:
+        if "[完整內文]" in st.session_state.ai_reply:
         parts = st.session_state.ai_reply.split("[完整內文]")
         summary_part = parts[0].replace("[摘要]", "").strip()
         full_detail_part = parts[1].strip()
