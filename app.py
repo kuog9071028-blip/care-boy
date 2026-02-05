@@ -102,7 +102,7 @@ def get_ai_response(prompt_text):
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     # 優化後的指令，同時滿足：主旨、摘要、完整內容
-final_prompt = (
+    final_prompt = (
     f"{prompt_text}\n\n"
     "請務必遵守以下回覆格式，不要輸出任何額外文字：\n"
     "[標題] 15字以內的重點摘要(用於郵件主旨)\n"
