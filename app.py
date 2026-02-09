@@ -54,18 +54,46 @@ def load_hospice_knowledge():
     return [] 
 
 def calculate_score(user_text, database):
-    """規則比對邏輯"""
+    """規則比對邏輯：自動修正字串與列表的差異"""
     results = []
+    if not user_text: return []
+    
     for item in database:
         score = 0
         matches = []
-        for keyword in item['triggers']:
-            if re.search(keyword, user_text, re.IGNORECASE):
+        
+        # 1. 取得觸發詞 (相容 triggers 或 trigger_behavior)
+        raw_trigger = item.get('triggers', item.get('trigger_behavior', []))
+        
+        # 2. 強制轉成「列表」：如果是字串 "覺得醬油在動" -> 變成 ["覺得醬油在動"]
+        # 這樣下方的 for 迴圈才會拿「整句話」去比對，而不是拆成單個字
+        triggers_list = [raw_trigger] if isinstance(raw_trigger, str) else raw_trigger
+        
+        # 3. 開始比對
+        for keyword in triggers_list:
+            if keyword and str(keyword) in user_text:
                 score += 1
-                matches.append(keyword)
+                matches.append(str(keyword))
+        
         if score > 0:
+            # 確保有標題可以顯示
+            if 'name' not in item:
+                item['name'] = item.get('scene', '長照處方')
             results.append({"data": item, "score": score, "matches": matches})
+            
     return sorted(results, key=lambda x: x['score'], reverse=True)
+    #"""規則比對邏輯"""
+    #results = []
+    #for item in database:
+    #    score = 0
+    #    matches = []
+    #    for keyword in item['triggers']:
+    #        if re.search(keyword, user_text, re.IGNORECASE):
+    #            score += 1
+    #            matches.append(keyword)
+    #    if score > 0:
+    #        results.append({"data": item, "score": score, "matches": matches})
+    #return sorted(results, key=lambda x: x['score'], reverse=True)
 
 def retrieve_hospice_info(user_query, knowledge_base):
     """安寧 RAG 檢索邏輯"""
