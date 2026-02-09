@@ -249,7 +249,7 @@ def main():
     app_mode, chronic_diseases = render_sidebar_content()
     st.write(f"🐞 除錯資訊：資料庫目前讀到 {len(dementia_db)} 筆資料")
     if len(dementia_db) > 0:
-    st.write(f"🐞 第一筆資料的標籤：{list(dementia_db[0].keys())}")
+        st.write(f"🐞 第一筆資料的標籤：{list(dementia_db[0].keys())}")
     # 初始化筆記本
     if "ai_reply" not in st.session_state: st.session_state.ai_reply = None
     if "key_point" not in st.session_state: st.session_state.key_point = ""
