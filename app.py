@@ -244,6 +244,9 @@ def render_sidebar_content():
 # 3. 主程式介面 - 核心分析區
 # ==========================================
 def main():
+    st.write(f"🐞 除錯資訊：資料庫目前讀到 {len(dementia_db)} 筆資料")
+    if len(dementia_db) > 0:
+    st.write(f"🐞 第一筆資料的標籤：{list(dementia_db[0].keys())}")
     dementia_db, caregiver_db, services_db = load_data()
     app_mode, chronic_diseases = render_sidebar_content()
 
