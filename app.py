@@ -250,10 +250,10 @@ def main():
     st.write(f"🐞 資料庫筆數: {len(dementia_db)}")
     # 看看裡面有沒有「醬油」這兩個字
     all_triggers = str(dementia_db)
-if "醬油" in all_triggers:
-    st.write("✅ 檔案檢查：醬油確實在資料庫中")
-else:
-    st.write("❌ 檔案檢查：資料庫裡根本沒提到醬油！")
+    if "醬油" in all_triggers:
+        st.write("✅ 檔案檢查：醬油確實在資料庫中")
+    else:
+        st.write("❌ 檔案檢查：資料庫裡根本沒提到醬油！")
     # 初始化筆記本
     if "ai_reply" not in st.session_state: st.session_state.ai_reply = None
     if "key_point" not in st.session_state: st.session_state.key_point = ""
