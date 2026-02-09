@@ -302,25 +302,60 @@ def main():
     
             # --- (B) 📋 建議處方卡片 (緊跟在回覆後) ---
             st.divider()
+            st.divider()
+            # 確保使用 user_input 或 st.session_state.user_q 進行比對
             dem_matches = calculate_score(st.session_state.user_q, dementia_db)
+
             if dem_matches:
-                top_match = dem_matches[0]
-                st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
-                st.info(f"💡 **照小子提醒**：針對長輩的狀況，建議採取穩定情緒的照顧策略。")
-                
-                if "recommend_services" in top_match['data']:
+                # 取得最高分的匹配項
+                match_data = dem_matches[0]['data']
+    
+                st.markdown(f"### 📋 建議處方：{match_data.get('name', '失智照顧建議')}")
+    
+                # 1. 顯示「警訊觀測」：讓家屬看見病理真相 (使用 warning 黃色框)
+                st.warning(f"⚠️ **照小子【警訊觀測】**：\n\n{match_data.get('warning_signal', '暫無特定警訊說明。')}")
+    
+                # 2. 顯示「實戰錦囊」：具體的行動指引 (使用 success 綠色框)
+                st.success(f"💡 **照小子【實戰錦囊】**：\n\n{match_data.get('prevention_strategy', '暫無特定預防策略。')}")
+    
+                # 3. 原始服務列表：如果資料庫有推薦代碼，就顯示小卡片
+                if "recommend_services" in match_data:
                     st.markdown("#### 🛠️ 建議搭配長照服務 (可申請補助)：")
-                    valid_svcs = [c for c in top_match['data']['recommend_services'] if c in services_db]
-                    cols = st.columns(2)
-                    for idx, code in enumerate(valid_svcs):
-                        svc = services_db[code]
-                        with cols[idx % 2]:
-                            with st.container(border=True):
-                                st.markdown(f"**{svc['name']} ({code})**")
-                                st.caption(svc['desc'])
-                                st.markdown(f"單價：${svc['price']}")
+                    # 篩選出資料庫中存在的服務代碼
+                    valid_svcs = [c for c in match_data['recommend_services'] if c in services_db]
+        
+                    if valid_svcs:
+                        cols = st.columns(2)
+                        for idx, code in enumerate(valid_svcs):
+                            svc = services_db[code]
+                            with cols[idx % 2]:
+                                with st.container(border=True):
+                                    st.markdown(f"**{svc['name']} ({code})**")
+                                    st.caption(svc['desc'])
+                                    st.markdown(f"單價：${svc['price']}")
+                    else:
+                        st.caption("ℹ️ 此處方暫無對應的給付項目，建議諮詢 A 個管員。")
             else:
                 st.caption("ℹ️ 目前狀況未觸發特定失智照顧處方，建議諮詢專業醫護。")
+            #dem_matches = calculate_score(st.session_state.user_q, dementia_db)
+            #if dem_matches:
+            #    top_match = dem_matches[0]
+            #    st.markdown(f"### 📋 建議處方：{top_match['data']['name']}")
+            #    st.info(f"💡 **照小子提醒**：針對長輩的狀況，建議採取穩定情緒的照顧策略。")
+            #    
+            #    if "recommend_services" in top_match['data']:
+            #        st.markdown("#### 🛠️ 建議搭配長照服務 (可申請補助)：")
+            #        valid_svcs = [c for c in top_match['data']['recommend_services'] if c in services_db]
+            #        cols = st.columns(2)
+            #        for idx, code in enumerate(valid_svcs):
+            #            svc = services_db[code]
+            #            with cols[idx % 2]:
+            #                with st.container(border=True):
+            #                    st.markdown(f"**{svc['name']} ({code})**")
+            #                    st.caption(svc['desc'])
+            #                    st.markdown(f"單價：${svc['price']}")
+            #else:
+            #    st.caption("ℹ️ 目前狀況未觸發特定失智照顧處方，建議諮詢專業醫護。")
 
             # --- (C) ✉️ 打包建議書區塊 (最後的行動呼籲) ---
             st.divider()
