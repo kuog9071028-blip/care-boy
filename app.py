@@ -109,15 +109,6 @@ def retrieve_hospice_info(user_query, knowledge_base):
     relevant_chunks.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in relevant_chunks[:3]]
 
-import streamlit as st
-import json
-import re
-import os
-import time
-import google.generativeai as genai
-import smtplib
-from email.mime.text import MIMEText
-from email.header import Header
 
 # ==========================================
 # 0. 系統設定與資料載入 (省略 load_data 等，保持原樣)
@@ -132,7 +123,9 @@ def get_ai_response(prompt_text):
     # 優化後的指令，同時滿足：主旨、摘要、完整內容
     final_prompt = (
         f"{prompt_text}\n\n"
-    "作為『桃園照小子』，請務必嚴格遵守以下格式：\n\n"
+    "作為『桃園照小子』，請務必嚴格遵守以下格式，這對我的系統解析非常重要：\n\n"
+    "[標題]：請用 15 字以內寫出一句照顧核心主旨\n"
+    "[內容]：\n"
     "1. [摘要]：約 250 字。請務必遵循以下層次架構：\n"
     "   - 開場：以『親愛的照顧者您好』開頭，用戰友口吻承接家屬對「行為表象」的焦慮。\n"
     "   - 真相大白：必須從 RAG [失智覺察資料] 提取病理原因（如：視空間障礙、程序記憶斷訊），詳述為何長輩會這樣，這部分請多用白話溫馨解釋（此處可大幅增加字數）。\n"
