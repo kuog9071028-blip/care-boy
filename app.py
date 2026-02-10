@@ -3,7 +3,7 @@ import json
 import re
 import os
 import time
-import google.generativeai as genai
+from google import genai  # 替換原本的 import google.generativeai as genai
 import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -126,7 +126,7 @@ from email.header import Header
 # ... (保留你原本的 load_data, load_hospice_knowledge, calculate_score, retrieve_hospice_info) ...
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫 (產出摘要與建議)"""
+    """Gemini API 呼叫 (已更新為 google-genai SDK 版本)(產出摘要與建議)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
     if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     # 優化後的指令，同時滿足：主旨、摘要、完整內容
@@ -143,17 +143,34 @@ def get_ai_response(prompt_text):
 
 )
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-flash-latest')
-        response = model.generate_content(final_prompt).text
+        # 新版 SDK 初始化 Client
+        client = genai.Client(api_key=api_key)
+        
+        # 新版生成內容語法
+        response = client.models.generate_content(
+            model='gemini-2.0-flash', # 建議升級至 2.0-flash，速度更快更聰明
+            contents=final_prompt
+        )
+        
+        full_text = response.text
+    #    genai.configure(api_key=api_key)
+    #    model = genai.GenerativeModel('gemini-flash-latest')
+    #    response = model.generate_content(final_prompt).text
         
         # 解析標題與內容
+        #try:
+        #    key_point = response.split("[內容]")[0].replace("[標題]", "").strip()
+        #    full_reply = response.split("[內容]")[1].strip()
+        #    return key_point, full_reply
+        #except:
         try:
-            key_point = response.split("[內容]")[0].replace("[標題]", "").strip()
-            full_reply = response.split("[內容]")[1].strip()
+            # 這裡維持你的解析邏輯，但將變數名稱微調以求清晰
+            key_point = full_text.split("[內容]")[0].replace("[標題]", "").strip()
+            full_reply = full_text.split("[內容]")[1].strip()
             return key_point, full_reply
         except:
-            return "長照計畫建議", response
+            return "長照顧計畫建議", full_text
+            #return "長照計畫建議", response
     except Exception as e:
         return "系統異常", f"⚠️ 系統錯誤：{str(e)}"
 
