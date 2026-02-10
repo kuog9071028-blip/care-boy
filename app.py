@@ -142,7 +142,7 @@ def get_ai_response(prompt_text):
         # 新版生成內容語法
         response = client.models.generate_content(
             #model='gemini-2.0-flash', # 建議升級至 2.0-flash，速度更快更聰明
-            model='gemini-1.5-flash',
+            model='gemini-1.5-flash-latest',
             contents=final_prompt
         )
         
