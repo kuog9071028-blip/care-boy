@@ -152,6 +152,8 @@ def get_ai_response(prompt_text):
             messages=[{"role": "user", "content": final_prompt}],
             model="llama-3.3-70b-versatile",
         )
+        # 3. 取值 (把 AI 的回覆內容拿出來) --- 就是這行！
+        full_text = chat_completion.choices[0].message.content
         #以下為舊的
         # 新版生成內容語法
         #response = client.models.generate_content(
