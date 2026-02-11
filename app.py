@@ -129,7 +129,8 @@ def get_ai_response(prompt_text):
     
     # 2. 設定模型 (建議用 gemini-1.5-flash，速度快且免費額度較多)
     #model = genai.GenerativeModel('gemini-1.5-flash')
-    model = genai.GenerativeModel('models/gemini-1.5-flash')
+    #model = genai.GenerativeModel('models/gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
     # 3. 組合優化後的指令
     final_prompt = (
         "你現在是台灣桃園的長照專家『桃園照小子』。請用『台灣繁體中文』回覆。\n\n"
