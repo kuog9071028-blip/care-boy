@@ -133,16 +133,6 @@ def get_ai_response(prompt_text):
     model = genai.GenerativeModel('gemini-flash-latest')
     # 3. 組合優化後的指令
     final_prompt = (
-    俊葳小弟，抱歉！我剛才光顧著讓他「變溫情、話變多」，結果不小心把我們用來切分顯示區和寄信主旨的關鍵標籤 [重點摘要] 給弄丟了。
-
-難怪你會覺得少了摘要，因為原本的 Python 程式碼是用 [重點摘要] 或 [內容] 這些標籤來「切蛋糕」的。如果 AI 回覆裡沒這些標籤，你的 st.info 和 st.success 顯示區就會亂掉。
-
-來，我們把標籤補回去，這版指令同時保證**「話很多」且「格式正確」**：
-
-🛠️ 修正版指令 (補回標籤與摘要結構)
-Python
-
-    final_prompt = (
         "你現在是桃園長照專家『桃園照小子』。請用『台灣繁體中文』回覆。\n\n"
         f"家屬目前的困擾：{prompt_text}\n\n"
         "### 寫作規範：\n"
