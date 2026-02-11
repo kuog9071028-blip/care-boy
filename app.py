@@ -119,16 +119,18 @@ def retrieve_hospice_info(user_query, knowledge_base):
 # ... (保留你原本的 load_data, load_hospice_knowledge, calculate_score, retrieve_hospice_info) ...
 
 def get_ai_response(prompt_text):
-    #"""使用 Groq (Llama 3) 呼叫，極速且穩定"""
-    # 記得在 Streamlit Secrets 裡把 key 名稱改成 GROQ_API_KEY，或是維持原名但填入 Groq 的 key
-    #api_key = st.secrets.get("GROQ_API_KEY", None) 
-    #if not api_key: return "標題摘要", "⚠️ 請設定 GROQ_API_KEY。"
-        
-    以下為舊的
-    """Gemini API 呼叫 (已更新為 google-genai SDK 版本)(產出摘要與建議)"""
+    """Gemini API 呼叫 (已修正為最新 google-genai 寫法)"""
     api_key = st.secrets.get("GOOGLE_API_KEY", None)
-    if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
-     優化後的指令，同時滿足：主旨、摘要、完整內容
+    if not api_key: 
+        return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
+    
+    # 1. 初始化設定
+    genai.configure(api_key=api_key)
+    
+    # 2. 設定模型 (建議用 gemini-1.5-flash，速度快且免費額度較多)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    # 3. 組合優化後的指令
     final_prompt = (
         "你現在是台灣桃園的長照專家『桃園照小子』。請用『台灣繁體中文』回覆。\n\n"
         f"家屬提問：{prompt_text}\n"
@@ -144,30 +146,26 @@ def get_ai_response(prompt_text):
         "列出台灣長照 2.0 的『額度與自負額』表格，以及桃園在地的具體補助資訊。\n\n"
         "請立即開始撰寫，展現你的專業與溫情："
     )
+
     try:
-        # 新版 SDK 初始化 Client
-        #client = genai.Client(api_key=api_key)
-        # 1. 初始化 Groq 客戶端(新模型)
-        client = Groq(api_key=api_key)
-        # 4. 呼叫
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": final_prompt}],
-            model="llama-3.3-70b-versatile",
-        )
-        # 3. 取值 (把 AI 的回覆內容拿出來) --- 就是這行！
-        full_text = chat_completion.choices[0].message.content
-       
-        try:
+        # 4. 呼叫 Gemini 產生內容
+        response = model.generate_content(final_prompt)
+        full_text = response.text
         
-            # 這裡維持你的解析邏輯，但將變數名稱微調以求清晰
-            key_point = full_text.split("[內容]")[0].replace("[標題]", "").strip()
+        # 5. 解析邏輯：根據 [內容] 標籤拆分標題與內文
+        if "[內容]" in full_text:
+            # 取 [內容] 之前的部分作為標題，去掉 [標題] 字樣
+            key_point = full_text.split("[內容]")[0].replace("[標題]", "").replace(":", "").strip()
+            # 取 [內容] 之後的部分作為完整回覆
             full_reply = full_text.split("[內容]")[1].strip()
             return key_point, full_reply
-        except:
-            return "長照顧計畫建議", full_text
-            #return "長照計畫建議", response
+        else:
+            # 如果 AI 沒有乖乖按照格式，就給個預設標題並回傳全文
+            return "照小子照顧計畫建議", full_text
+            
     except Exception as e:
-        return "系統異常", f"⚠️ 系統錯誤：{str(e)}"
+        return "系統異常", f"⚠️ Gemini 引擎回報錯誤：{str(e)}"
+        
 
 # --- 這裡開始是「寄信功能」，確保回到最左邊不縮排 ---
 
