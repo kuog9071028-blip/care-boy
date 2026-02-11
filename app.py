@@ -3,7 +3,8 @@ import json
 import re
 import os
 import time
-from google import genai  # 替換原本的 import google.generativeai as genai
+from groq import Groq  # 換成這行
+#from google import genai  # 替換原本的 import google.generativeai as genai
 import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -117,9 +118,15 @@ def retrieve_hospice_info(user_query, knowledge_base):
 # ... (保留你原本的 load_data, load_hospice_knowledge, calculate_score, retrieve_hospice_info) ...
 
 def get_ai_response(prompt_text):
-    """Gemini API 呼叫 (已更新為 google-genai SDK 版本)(產出摘要與建議)"""
-    api_key = st.secrets.get("GOOGLE_API_KEY", None)
-    if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
+    """使用 Groq (Llama 3) 呼叫，極速且穩定"""
+    # 記得在 Streamlit Secrets 裡把 key 名稱改成 GROQ_API_KEY，或是維持原名但填入 Groq 的 key
+    api_key = st.secrets.get("GROQ_API_KEY", None) 
+    if not api_key: return "標題摘要", "⚠️ 請設定 GROQ_API_KEY。"
+        
+    #以下為舊的
+    #"""Gemini API 呼叫 (已更新為 google-genai SDK 版本)(產出摘要與建議)"""
+    #api_key = st.secrets.get("GOOGLE_API_KEY", None)
+    #if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
     # 優化後的指令，同時滿足：主旨、摘要、完整內容
     final_prompt = (
         f"{prompt_text}\n\n"
@@ -137,16 +144,23 @@ def get_ai_response(prompt_text):
 )
     try:
         # 新版 SDK 初始化 Client
-        client = genai.Client(api_key=api_key)
-        
-        # 新版生成內容語法
-        response = client.models.generate_content(
-            #model='gemini-2.0-flash', # 建議升級至 2.0-flash，速度更快更聰明
-            model='gemini-1.5-flash-latest',
-            contents=final_prompt
+        #client = genai.Client(api_key=api_key)
+        # 1. 初始化 Groq 客戶端(新模型)
+        client = Groq(api_key=api_key)
+        # 4. 呼叫
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": final_prompt}],
+            model="llama-3.3-70b-versatile",
         )
+        #以下為舊的
+        # 新版生成內容語法
+        #response = client.models.generate_content(
+        #    #model='gemini-2.0-flash', # 建議升級至 2.0-flash，速度更快更聰明
+        #    model='gemini-1.5-flash-latest',
+        #    contents=final_prompt
+        #)
         
-        full_text = response.text
+        #full_text = response.text
     #    genai.configure(api_key=api_key)
     #    model = genai.GenerativeModel('gemini-flash-latest')
     #    response = model.generate_content(final_prompt).text
@@ -158,6 +172,7 @@ def get_ai_response(prompt_text):
         #    return key_point, full_reply
         #except:
         try:
+        
             # 這裡維持你的解析邏輯，但將變數名稱微調以求清晰
             key_point = full_text.split("[內容]")[0].replace("[標題]", "").strip()
             full_reply = full_text.split("[內容]")[1].strip()
