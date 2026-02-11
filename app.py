@@ -461,9 +461,13 @@ def main():
         for idx, report in enumerate(st.session_state.h_reports):
             # 計算總數，讓標籤顯示為 (1/2, 2/2) 這種格式
             total = len(st.session_state.h_reports)
+            # 建立外層摺疊
             with st.expander(f"📋 安寧錦囊 ({idx+1}/{total})：{report['key_point']}", expanded=True):
                 st.markdown(f"**問**：{report['question']}")
-                st.info(report['answer'])
+                st.divider()
+                # 【重點！】先定義變數，再進行判斷
+                full_h_text = report.get('answer', "")
+                #st.info(report['answer'])
                 # --- 解析標籤並進行內部摺疊 ---（new）
                 if "[完整內文]" in full_h_text:
                     h_parts = full_h_text.split("[完整內文]")
