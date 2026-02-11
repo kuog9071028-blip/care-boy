@@ -3,7 +3,8 @@ import json
 import re
 import os
 import time
-from groq import Groq  # 換成這行
+#from groq import Groq  # 換成這行
+import google.generativeai as genai
 #from google import genai  # 替換原本的 import google.generativeai as genai
 import smtplib
 from datetime import datetime
@@ -118,16 +119,16 @@ def retrieve_hospice_info(user_query, knowledge_base):
 # ... (保留你原本的 load_data, load_hospice_knowledge, calculate_score, retrieve_hospice_info) ...
 
 def get_ai_response(prompt_text):
-    """使用 Groq (Llama 3) 呼叫，極速且穩定"""
+    #"""使用 Groq (Llama 3) 呼叫，極速且穩定"""
     # 記得在 Streamlit Secrets 裡把 key 名稱改成 GROQ_API_KEY，或是維持原名但填入 Groq 的 key
-    api_key = st.secrets.get("GROQ_API_KEY", None) 
-    if not api_key: return "標題摘要", "⚠️ 請設定 GROQ_API_KEY。"
+    #api_key = st.secrets.get("GROQ_API_KEY", None) 
+    #if not api_key: return "標題摘要", "⚠️ 請設定 GROQ_API_KEY。"
         
-    #以下為舊的
-    #"""Gemini API 呼叫 (已更新為 google-genai SDK 版本)(產出摘要與建議)"""
-    #api_key = st.secrets.get("GOOGLE_API_KEY", None)
-    #if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
-    # 優化後的指令，同時滿足：主旨、摘要、完整內容
+    以下為舊的
+    """Gemini API 呼叫 (已更新為 google-genai SDK 版本)(產出摘要與建議)"""
+    api_key = st.secrets.get("GOOGLE_API_KEY", None)
+    if not api_key: return "標題摘要", "⚠️ (AI 模式未啟動) 請設定 GOOGLE_API_KEY。"
+     優化後的指令，同時滿足：主旨、摘要、完整內容
     final_prompt = (
         "你現在是台灣桃園的長照專家『桃園照小子』。請用『台灣繁體中文』回覆。\n\n"
         f"家屬提問：{prompt_text}\n"
