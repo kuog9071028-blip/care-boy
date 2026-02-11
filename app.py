@@ -464,7 +464,23 @@ def main():
             with st.expander(f"📋 安寧錦囊 ({idx+1}/{total})：{report['key_point']}", expanded=True):
                 st.markdown(f"**問**：{report['question']}")
                 st.info(report['answer'])
-
+                # --- 解析標籤並進行內部摺疊 ---（new）
+                if "[完整內文]" in full_h_text:
+                    h_parts = full_h_text.split("[完整內文]")
+                    # 清理摘要標籤
+                    h_summary = h_parts[0].replace("### 1. [重點摘要]：", "").replace("[摘要]", "").strip()
+                    # 清理內文標籤
+                    h_detail = h_parts[1].replace("### 2. [完整內文]：", "").strip()
+                    
+                    # 顯示摘要 (用藍色框框住，增加層次感)
+                    st.info(h_summary)
+                    
+                    # 再次摺疊：內文縮在更深一層，讓畫面乾淨
+                    with st.status("🔍 查看照小子提供的詳細安寧建議...", expanded=False):
+                        st.markdown(h_detail)
+                else:
+                    # 如果沒標籤，就直接顯示原本的 answer
+                    st.info(full_h_text)
         # 4. 一鍵打包區 (只要有一封以上就能打包)
         if st.session_state.h_reports:
             st.divider()
