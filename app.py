@@ -154,25 +154,7 @@ def get_ai_response(prompt_text):
         )
         # 3. 取值 (把 AI 的回覆內容拿出來) --- 就是這行！
         full_text = chat_completion.choices[0].message.content
-        #以下為舊的
-        # 新版生成內容語法
-        #response = client.models.generate_content(
-        #    #model='gemini-2.0-flash', # 建議升級至 2.0-flash，速度更快更聰明
-        #    model='gemini-1.5-flash-latest',
-        #    contents=final_prompt
-        #)
-        
-        #full_text = response.text
-    #    genai.configure(api_key=api_key)
-    #    model = genai.GenerativeModel('gemini-flash-latest')
-    #    response = model.generate_content(final_prompt).text
-        
-        # 解析標題與內容
-        #try:
-        #    key_point = response.split("[內容]")[0].replace("[標題]", "").strip()
-        #    full_reply = response.split("[內容]")[1].strip()
-        #    return key_point, full_reply
-        #except:
+       
         try:
         
             # 這裡維持你的解析邏輯，但將變數名稱微調以求清晰
