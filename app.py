@@ -288,23 +288,57 @@ def main():
         if st.session_state.ai_reply:
             st.divider()
             st.subheader("🤖 照小子 AI 顧問分析")
+          
+            full_text = st.session_state.ai_reply
+
+            # --- 強壯的解析邏輯開始 ---
+            # 我們預設尋找 [摘要] 或 [重點摘要]
+            # 使用 re.split 確保大小寫或空格稍微不對也能拆分
+            import re
     
-            # 物理隔離邏輯：從 [完整內文] 處切開
-            if "[完整內文]" in st.session_state.ai_reply:
-                parts = st.session_state.ai_reply.split("[完整內文]")
-                summary_part = parts[0].replace("[摘要]", "").strip()
-                full_detail_part = parts[1].strip()
+            # 嘗試拆分摘要與內文
+            if "[完整內文]" in full_text:
+                # 先切開摘要區與內文區
+                parts = full_text.split("[完整內文]")
+        
+                # 處理摘要部分：去掉 [標題] [內容] [重點摘要] 等標籤
+                summary_raw = parts[0]
+                # 把所有標籤格式都清除，只留下純文字
+                summary_clean = re.sub(r"\[標題\].*?\[內容\]|\[摘要\]|### 1. \[重點摘要\]：", "", summary_raw, flags=re.DOTALL).strip()
+        
+                # 處理內文部分：去掉標籤
+                detail_clean = parts[1].replace("### 2. [完整內文]：", "").strip()
+        
+                # 1. 顯示摘要（直接顯示，讓家屬先看重點）
+                st.info(summary_clean)
+
+                # 2. 顯示內文（預設縮起來，降低資訊壓力）
+                with st.expander("🔍 點擊展開：照小子為您準備的詳細戰術包", expanded=False):
+                    # 使用 markdown 確保 AI 的換行與粗體能正確顯示
+                    st.markdown(detail_clean) 
+            
+            else:
+                # 備援計畫：如果 AI 忘記加標籤，就直接全顯示，但給一個提示
+                st.warning("ℹ️ 照小子提示：詳細計畫整理中，請先參考以下完整內容：")
+                st.markdown(full_text)
+            # --- 解析邏輯結束 ---
+        
+            # 物理隔離邏輯：從 [完整內文] 處切開(old)
+            #if "[完整內文]" in st.session_state.ai_reply:
+            #    parts = st.session_state.ai_reply.split("[完整內文]")
+            #    summary_part = parts[0].replace("[摘要]", "").strip()
+            #    full_detail_part = parts[1].strip()
         
                 # 1. 顯示摘要（戰友溫馨版）
-                st.info(summary_part)
+            #    st.info(summary_part)
         
                 # 2. 顯示按鈕（摺疊完整內文）
-                with st.expander("🔍 點擊展開：照小子為您準備的詳細戰術包", expanded=False):
+            #    with st.expander("🔍 點擊展開：照小子為您準備的詳細戰術包", expanded=False):
                     #st.markdown(full_detail_part)
-                    st.success(full_detail_part) # 這樣點開後，裡面整片都會是綠色底、深綠字
-            else:
+            #        st.success(full_detail_part) # 這樣點開後，裡面整片都會是綠色底、深綠字
+            #else:
                 # 如果格式意外沒對上，就維持原樣顯示
-                st.success(st.session_state.ai_reply)
+            #    st.success(st.session_state.ai_reply)
     
             # --- (B) 📋 建議處方卡片 (緊跟在回覆後) ---
             st.divider()
